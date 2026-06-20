@@ -7,6 +7,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="theme-color" content="#04050a" />
+<meta name="application-name" content="Dragon Dash" />
+<meta name="apple-mobile-web-app-title" content="Dragon Dash" />
+<meta name="description" content="ドラゴンを操作してトンネルを駆け抜ける Babylon.js 製の3Dランゲーム。" />
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="icon" type="image/png" href="./icons/favicon.png" />
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
 <title>🐉 DRAGON DASH — LEGO Dragon Runner</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
@@ -33,6 +39,10 @@
   .btn { margin-top: 18px; font: inherit; font-size: 18px; font-weight: 800; color: #fff; cursor: pointer; background: linear-gradient(90deg,#ff8a33,#ff2f5d); border: none; border-radius: 14px; padding: 15px 44px; min-height: 52px; box-shadow: 0 10px 28px rgba(255,60,80,.4); transition: transform .12s, box-shadow .12s; letter-spacing:.05em; touch-action: manipulation; }
   .btn:hover { transform: translateY(-2px) scale(1.03); box-shadow: 0 16px 38px rgba(255,60,80,.55); }
   .btn:active { transform: translateY(0); }
+  .btn-install { margin-top: 12px; font-size: 16px; padding: 13px 30px; min-height: 48px; background: linear-gradient(90deg,#2f9bff,#7a5cff); box-shadow: 0 10px 28px rgba(60,120,255,.4); }
+  .btn-install:hover { box-shadow: 0 16px 38px rgba(60,120,255,.55); }
+  .install-hint { margin-top: 12px; font-size: 12px; color: #9fb4d6; line-height: 1.7; }
+  .install-hint b { color: #cfe0ff; font-size: 14px; }
 
   .roster { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:10px; }
   .chip { font-size:10px; padding:3px 8px; border-radius:20px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12); color:#cfd6e2; }
@@ -94,6 +104,8 @@
     <p id="menuBest" style="color:#ffd27a">🏆 自己ベスト 0 m</p>
     <div class="keys">操作 : <b>スワイプした方向へ動き続けます</b>・指を戻すか離すと停止（マウスはドラッグ）</div>
     <button class="btn" id="startBtn">▶ スタート / タップで開始</button>
+    <button class="btn btn-install hidden" id="installBtn">📲 アプリとしてインストール</button>
+    <p class="install-hint hidden" id="iosInstallHint">📲 ホーム画面に追加：共有ボタン <b>􀈂</b> →「ホーム画面に追加」</p>
   </div>
 </div>
 
@@ -111,6 +123,55 @@
 <script src="./lib/babylon.js"></script>
 <script src="./lib/babylonjs.loaders.min.js"></script>
 <script>
+/* ---- PWA: service worker registration + install prompt ---------------- */
+(function setupPWA() {
+  // Register the service worker for offline play / installability.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch((e) => console.warn('SW register failed', e));
+    });
+  }
+
+  const installBtn = document.getElementById('installBtn');
+  const iosHint = document.getElementById('iosInstallHint');
+  let deferredPrompt = null;
+
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                       window.matchMedia('(display-mode: fullscreen)').matches ||
+                       window.navigator.standalone === true;
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  // Android / desktop Chromium: capture the install prompt and show our button.
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (installBtn) installBtn.classList.remove('hidden');
+  });
+
+  if (installBtn) {
+    installBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      try { await deferredPrompt.userChoice; } catch (_) {}
+      deferredPrompt = null;
+      installBtn.classList.add('hidden');
+    });
+  }
+
+  window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    if (installBtn) installBtn.classList.add('hidden');
+    if (iosHint) iosHint.classList.add('hidden');
+  });
+
+  // iOS Safari has no beforeinstallprompt — show manual "Add to Home Screen" hint.
+  if (isIOS && !isStandalone && iosHint) {
+    iosHint.classList.remove('hidden');
+  }
+})();
+/* ---------------------------------------------------------------------- */
+
 const canvas = document.getElementById('renderCanvas');
 const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true, antialias: true });
 engine.setHardwareScalingLevel(1 / Math.min(window.devicePixelRatio || 1, 2));
