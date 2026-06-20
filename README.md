@@ -9,15 +9,28 @@
 
 スマホ・タブレット・PC のブラウザでそのまま遊べます。
 
+### 📲 アプリとしてインストール（PWA）
+
+ホーム画面に追加すると、アドレスバーなしの全画面アプリとして起動でき、
+一度読み込めばオフラインでも遊べます。
+
+- **Android (Chrome)** : スタート画面の「📲 アプリとしてインストール」ボタン、
+  またはブラウザメニュー →「アプリをインストール / ホーム画面に追加」
+- **iPhone / iPad (Safari)** : 共有ボタン → 「ホーム画面に追加」
+- **PC (Chrome / Edge)** : アドレスバー右の ⊕ インストールアイコン
+
 ## 構成
 
 ```
 game/
-├── index.html       ゲーム本体 (Babylon.js)
-├── lib/             Babylon.js ランタイム
-├── bird2.glb        プレイヤー（ドラゴン）モデル
-├── models/          敵キャラクターモデル (6体)
-└── assets/          ステージ用フリー素材 (PBRテクスチャ / スカイボックス)
+├── index.html             ゲーム本体 (Babylon.js)
+├── manifest.webmanifest   PWA マニフェスト（インストール情報）
+├── sw.js                  Service Worker（オフライン対応）
+├── icons/                 アプリアイコン (192/512, maskable, apple-touch)
+├── lib/                   Babylon.js ランタイム
+├── bird2.glb              プレイヤー（ドラゴン）モデル
+├── models/                敵キャラクターモデル (6体)
+└── assets/                ステージ用フリー素材 (PBRテクスチャ / スカイボックス)
 ```
 
 > 3Dモデルの生成パイプライン（TRELLIS や元写真、.ply / .mp4 などの中間生成物）は
