@@ -35,6 +35,10 @@ python3 -m http.server 8000   # http://localhost:8000
 - 移動 : 矢印キー / WASD / マウスドラッグ
 - 敵に3回ぶつかるとゲームオーバー。緑の💚で体力回復。
 - 最高スコア（自己ベスト）はブラウザのクッキーに保存される。
+- 距離に応じてステージが変化（Babylon.js Materials Library 使用）:
+  - 0–2000m : 🌋 1st マグマだまり（LavaMaterial）
+  - 2000–4000m : 🌿 2nd 岩の草原（CellMaterial + GridMaterial）
+  - 4000m– : 🌌 3rd 宇宙空間（GridMaterial）
 
 ## GitHub Pages で公開
 
