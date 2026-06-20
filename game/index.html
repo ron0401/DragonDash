@@ -326,6 +326,12 @@ const engine = new BABYLON.Engine(canvas, !IS_IOS, { preserveDrawingBuffer: true
 // framebuffer through the entire bloom/FXAA/glow post chain, enough to lose the GL
 // context during boot.
 engine.setHardwareScalingLevel(IS_IOS ? 1 : 1 / Math.min(window.devicePixelRatio || 1, 2));
+// Some iOS Safari builds fail outright on the WebGL2 uniform-buffer path —
+// `gl.createBuffer()` returns null and Babylon throws "Unable to create uniform
+// buffer" the moment it builds a light's UBO during scene setup, which is exactly
+// what was freezing the loader on iPhone. Fall back to classic per-uniform updates
+// there; marginally slower, but reliable.
+if (IS_IOS) engine.disableUniformBuffers = true;
 
 // If anything throws while we're still on the LOADING… screen, surface it ON the
 // screen — otherwise a device-specific boot failure (often iOS-only) just leaves
