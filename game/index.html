@@ -271,10 +271,10 @@ function buildSky() {
   skybox.material = skyMat;
 }
 function loadSkies() {
-  // 1st マグマだまり: fiery sky (Poly Haven "the_sky_is_on_fire", CC0)
-  // args: url, scene, size, noMipmap=false, generateHarmonics=true, gammaSpace=false, prefilterOnLoad=true
-  stageSkies[0] = new BABYLON.HDRCubeTexture("./assets/sky/magma.hdr", scene, 512, false, true, false, true);
+  // 1st マグマだまり: volcanic-cavern panorama (smoky ceiling + glowing molten horizon)
+  stageSkies[0] = new BABYLON.EquiRectangularCubeTexture("./assets/sky/magma.jpg", scene, 1024);
   // 2nd 岩の草原: partly-cloudy blue sky (Poly Haven "kloofendal_48d_partly_cloudy_puresky", CC0)
+  // args: url, scene, size, noMipmap=false, generateHarmonics=true, gammaSpace=false, prefilterOnLoad=true
   stageSkies[1] = new BABYLON.HDRCubeTexture("./assets/sky/grass.hdr", scene, 512, false, true, false, true);
   // 3rd 宇宙空間: real all-sky Milky Way panorama (ESO/S.Brunier, CC BY 4.0)
   stageSkies[2] = new BABYLON.EquiRectangularCubeTexture("./assets/sky/space.jpg", scene, 1024);
