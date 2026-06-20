@@ -58,8 +58,15 @@
   .btn-score { background: linear-gradient(90deg,#7a5cff,#2f9bff); box-shadow: 0 10px 24px rgba(80,120,255,.35); }
   .btn-score:hover { box-shadow: 0 16px 34px rgba(80,120,255,.5); }
 
-  .roster { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:10px; }
+  .roster { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:8px; }
   .chip { font-size:10px; padding:3px 8px; border-radius:20px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12); color:#cfd6e2; }
+  .picker-label { font-size:12px; color:#9fe0ff; margin-top:8px; }
+  .char-chip { font: inherit; font-size:12px; padding:7px 13px; min-height:34px; cursor:pointer; pointer-events:auto; color:#cfd6e2;
+               background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.14); border-radius:20px;
+               transition: transform .1s, background .15s, border-color .15s, box-shadow .15s; touch-action: manipulation; }
+  .char-chip:hover { transform: translateY(-1px); background:rgba(255,255,255,.14); }
+  .char-chip:active { transform: translateY(0); }
+  .char-chip.sel { background: linear-gradient(90deg,#ff8a33,#ff2f5d); border-color: transparent; color:#fff; font-weight:800; box-shadow:0 5px 16px rgba(255,80,60,.42); }
 
   #hud { position: fixed; top: 0; left: 0; right: 0; z-index: 15; display: flex; justify-content: space-between; align-items: flex-start;
          padding: calc(12px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 12px calc(16px + env(safe-area-inset-left)); pointer-events: none; }
@@ -118,6 +125,7 @@
     <h1>🐉 DRAGON DASH</h1>
     <p style="color:#ff9a6a">敵に3回ぶつかるとゲームオーバー。緑の💚で体力回復！</p>
     <p class="drag-hint">🖐️ モデルをドラッグでグリグリ ・ ピンチでズーム</p>
+    <p class="picker-label">▼ プレイキャラクターを選ぼう（次回のオープニングにも登場）</p>
     <div class="roster" id="roster"></div>
     <p id="menuBest" style="color:#ffd27a">🏆 自己ベスト 0 m</p>
     <div class="keys">操作 : <b>スワイプした方向へ動き続けます</b>・指を戻すか離すと停止（マウスはドラッグ）</div>
@@ -213,13 +221,18 @@ const ROLL_SIGN = -1, PITCH_SIGN = -1; // banking direction. flip a sign if that
 const DRAGON_BRIGHT = 0.42, ENEMY_BRIGHT = 0.42;
 const INTRO_DUR = 3.8;
 
-const ENEMIES = [
-  { file:'tarantula_dragon.glb', name:'タランチュラドラゴン' },
-  { file:'kira.glb',            name:'キーラ' },
-  { file:'hero_main.glb',       name:'主人公' },
-  { file:'brave.glb',           name:'勇者' },
-  { file:'golem.glb',           name:'岩のゴーレム' },
-  { file:'evil_spirit.glb',     name:'悪い精霊' },
+// Every character can be the player AND (except the dragon) shows up as a
+// flying obstacle. The dragon is index 0 and the default play character.
+// `dir`/`file` = where the .glb lives, `size` = normalize target,
+// `yaw` = facing while flying as the player (tuned so it points forward).
+const CHARACTERS = [
+  { id:'dragon',    file:'bird2.glb',            dir:'./',        name:'ドラゴン',            emoji:'🐉', size:3.8, yaw: DRAGON_YAW, player:true,  enemy:false },
+  { id:'tarantula', file:'tarantula_dragon.glb', dir:'./models/', name:'タランチュラドラゴン', emoji:'🕷️', size:3.0, yaw: DRAGON_YAW, player:true,  enemy:true  },
+  { id:'kira',      file:'kira.glb',             dir:'./models/', name:'キーラ',              emoji:'⚡', size:3.0, yaw: DRAGON_YAW, player:true,  enemy:true  },
+  { id:'hero',      file:'hero_main.glb',        dir:'./models/', name:'主人公',              emoji:'🦸', size:3.0, yaw: DRAGON_YAW, player:true,  enemy:true  },
+  { id:'brave',     file:'brave.glb',            dir:'./models/', name:'勇者',                emoji:'⚔️', size:3.0, yaw: DRAGON_YAW, player:true,  enemy:true  },
+  { id:'golem',     file:'golem.glb',            dir:'./models/', name:'岩のゴーレム',         emoji:'🗿', size:3.0, yaw: DRAGON_YAW, player:true,  enemy:true  },
+  { id:'spirit',    file:'evil_spirit.glb',      dir:'./models/', name:'悪い精霊',            emoji:'👻', size:3.0, yaw: DRAGON_YAW, player:true,  enemy:true  },
 ];
 
 // ---------- stages ----------
@@ -254,14 +267,15 @@ let hemiLight, dirLight, fillLight;
 let tunnelFloors = [], tunnelCeils = [], stageSkies = [], skybox, skyMat, streakMat = null;
 let currentStageIndex = -1, stageTgt = STAGES[0];
 let obstacles = [], heals = [], gates = [], streaks = [];
-let templates = [];
-let dragonModelRoot = null;
+let charTemplates = [];           // loaded model holders, indexed to match CHARACTERS
+let dragonModelRoot = null;       // the ACTIVE player model (a clone under dragonFacing)
+let selectedCharIndex = 0;        // which CHARACTERS entry the player flies as
 let showcaseRoot = null, showcaseItems = [], showcaseBuilt = false;
 const SHOWCASE_CENTER = () => new BABYLON.Vector3(0, Y_CENTER, 5);
 let phase = 'loading';        // loading | intro | menu | playing | over
 let introT = 0;
 let assetsLoaded = 0;
-const assetsTotal = 1 + 6;    // dragon + 6 enemies
+const assetsTotal = CHARACTERS.length;    // dragon + 6 others
 let dragonReady = false;
 let quickPlay = false;
 let lives = 3, distance = 0, speed = BASE_SPEED, invuln = 0, shake = 0, camRoll = 0, dodgeCombo = 0, comboTimer = 0;
@@ -317,10 +331,9 @@ function createScene() {
   applyStage(0, false);
   setStageTint(1);          // snap scene tint to the 1st stage at boot
 
-  loadDragon();
   buildFireTrail();
   buildHeals();
-  loadEnemies();
+  loadCharacters();
   buildObstacles(false);   // boxes until models ready
   return scene;
 }
@@ -525,24 +538,56 @@ function normalizeImported(meshes, root, targetSize) {
   root.position.subtractInPlace(mn.add(mx).scale(0.5).scale(scl));
 }
 
-function loadDragon() {
-  BABYLON.SceneLoader.ImportMeshAsync("", "./", "bird2.glb", scene).then(res => {
-    const root = res.meshes[0];
-    normalizeImported(res.meshes, root, 3.8);
-    root.rotation = BABYLON.Vector3.Zero();
-    root.parent = dragonFacing;
-    brighten(res.meshes, DRAGON_BRIGHT);
-    dragonModelRoot = root;
-    console.log("[dragon] loaded");
-    dragonReady = true; assetLoaded();
-  }).catch(err => {
-    console.error("dragon load failed", err);
+// Load every character once into a disabled holder. Each holder is reused both
+// as the player model (cloned under dragonFacing) and, for non-dragon ones, as a
+// flying obstacle — so nothing is loaded twice.
+function loadCharacters() {
+  CHARACTERS.forEach((char, i) => {
+    BABYLON.SceneLoader.ImportMeshAsync("", char.dir, char.file, scene).then(res => {
+      const root = res.meshes[0];
+      normalizeImported(res.meshes, root, char.size);
+      root.rotation = BABYLON.Vector3.Zero();
+      brighten(res.meshes, char.id === 'dragon' ? DRAGON_BRIGHT : ENEMY_BRIGHT);
+      const holder = new BABYLON.TransformNode("ctmpl_" + char.id, scene);
+      root.parent = holder; holder.setEnabled(false);
+      charTemplates[i] = { holder, char };
+      console.log("[char] loaded", char.file);
+      assetLoaded();
+    }).catch(err => { console.warn("char load failed", char.file, err); assetLoaded(); });
+  });
+}
+
+// Non-dragon characters that have finished loading, used to populate obstacles.
+function obstacleTemplates() { return charTemplates.filter((t, i) => t && CHARACTERS[i].enemy); }
+
+// Swap the active player model to CHARACTERS[index]. Clones the loaded holder
+// under dragonFacing (instant — no re-import). Falls back gracefully so the
+// game is never left without a player mesh.
+function setPlayerCharacter(index) {
+  let tmpl = charTemplates[index];
+  if (!tmpl) { index = charTemplates.findIndex(t => t); tmpl = charTemplates[index]; }   // any loaded model
+  if (dragonModelRoot) { dragonModelRoot.dispose(); dragonModelRoot = null; }
+  if (!tmpl) {   // nothing loaded yet — placeholder so the intro still has something to show
     const c = BABYLON.MeshBuilder.CreateCylinder("fb", { diameterTop: 0, diameterBottom: 2.4, height: 3.6 }, scene);
     c.rotation.x = Math.PI/2; const m = new BABYLON.StandardMaterial("fbm", scene);
     m.diffuseColor = new BABYLON.Color3(0.9,0.3,0.15); m.emissiveColor = new BABYLON.Color3(0.4,0.12,0.05); c.material = m;
-    c.parent = dragonFacing;
-    dragonReady = true; assetLoaded();
-  });
+    c.parent = dragonFacing; dragonFacing.rotation.y = DRAGON_YAW; dragonModelRoot = c;
+    return;
+  }
+  selectedCharIndex = index;
+  const clone = tmpl.holder.clone("playerModel", null);
+  clone.setEnabled(true); clone.parent = dragonFacing;
+  clone.position.set(0, 0, 0); clone.rotation = BABYLON.Vector3.Zero();
+  dragonFacing.rotation.y = CHARACTERS[index].yaw;
+  dragonModelRoot = clone;
+}
+
+// All models in — finalise obstacles, build the player, then begin the intro.
+function onAllAssetsLoaded() {
+  buildObstacles(true);
+  setPlayerCharacter(selectedCharIndex);
+  dragonReady = true;
+  maybeBeginIntro(false);
 }
 
 function assetLoaded() {
@@ -550,34 +595,19 @@ function assetLoaded() {
   const pct = Math.min(100, Math.round(assetsLoaded / assetsTotal * 100));
   const b = document.getElementById('loadingBar'); if (b) b.style.width = pct + '%';
   const t = document.getElementById('loadingPct'); if (t) t.textContent = 'ドラゴンと仲間たちを読み込み中… ' + pct + '%';
-  if (assetsLoaded >= assetsTotal) maybeBeginIntro(false);
+  if (assetsLoaded >= assetsTotal) onAllAssetsLoaded();
 }
 
 function maybeBeginIntro(force) {
   if (phase !== 'loading') return;
   if (!force && (assetsLoaded < assetsTotal || !dragonReady)) return;
+  if (!dragonModelRoot) setPlayerCharacter(selectedCharIndex);   // forced path: ensure a player mesh exists
   document.getElementById('loadingScreen').classList.add('hidden');
   if (quickPlay) { enterMenu(); startGame(); return; }
   if (location.hash.indexOf('menu') >= 0) { enterMenu(); return; } // skip intro -> showcase
   phase = 'intro'; introT = 0;
   // wall-clock fallback so the menu appears even if frame timing lags
   setTimeout(() => { if (phase === 'intro') enterMenu(); }, INTRO_DUR*1000 + 900);
-}
-
-function loadEnemies() {
-  ENEMIES.forEach((e, i) => {
-    BABYLON.SceneLoader.ImportMeshAsync("", "./models/", e.file, scene).then(res => {
-      const root = res.meshes[0];
-      normalizeImported(res.meshes, root, 3.0);
-      brighten(res.meshes, ENEMY_BRIGHT);
-      const holder = new BABYLON.TransformNode("tmpl_"+e.file, scene);
-      root.parent = holder; holder.setEnabled(false);
-      templates.push({ holder, name: e.name });
-      console.log("[enemy] loaded", e.file, templates.length + "/" + ENEMIES.length);
-      if (templates.length === ENEMIES.length) buildObstacles(true); // all ready -> swap in models
-      assetLoaded();
-    }).catch(err => { console.warn("enemy load failed", e.file, err); assetLoaded(); });
-  });
 }
 
 function buildFireTrail() {
@@ -627,10 +657,11 @@ function makeBox(i) {
 function buildObstacles(useModels) {
   obstacles.forEach(o => o.dispose());
   obstacles = [];
+  const tmpls = obstacleTemplates();
   for (let i = 0; i < NUM_OBSTACLES; i++) {
     let node;
-    if (useModels && templates.length) {
-      const t = templates[i % templates.length];
+    if (useModels && tmpls.length) {
+      const t = tmpls[i % tmpls.length];
       node = t.holder.clone("obs"+i, null); node.setEnabled(true); node.name = "obs"+i;
     } else {
       node = makeBox(i);
@@ -680,8 +711,10 @@ function buildShowcase() {
   const C = SHOWCASE_CENTER();
 
   const sources = [];
-  if (dragonModelRoot) sources.push({ node: dragonModelRoot, name: "ドラゴン (自機)", yaw: DRAGON_YAW });
-  templates.forEach(t => sources.push({ node: t.holder, name: t.name, yaw: 0 }));
+  charTemplates.forEach((t, i) => {
+    if (!t) return;
+    sources.push({ node: t.holder, name: CHARACTERS[i].name, charIndex: i, yaw: i === 0 ? DRAGON_YAW : 0 });
+  });
 
   const n = sources.length;
   sources.forEach((src, i) => {
@@ -690,7 +723,7 @@ function buildShowcase() {
     const pivot = new BABYLON.TransformNode("scp"+i, scene);
     pivot.parent = showcaseRoot;
     pivot.position.set(C.x + Math.sin(theta)*R, C.y, C.z + Math.cos(theta)*R);
-    pivot.scaling.set(1.45, 1.45, 1.45);
+    pivot.scaling.set(SHOWCASE_BASE, SHOWCASE_BASE, SHOWCASE_BASE);
 
     const clone = src.node.clone("scm"+i, null);
     clone.setEnabled(true);
@@ -701,11 +734,23 @@ function buildShowcase() {
     const label = makeLabel(src.name);
     label.parent = pivot;
     label.position.set(0, 2.6, 0);
-    const k = 1/1.45; label.scaling.set(k, k, k);
+    const k = 1/SHOWCASE_BASE; label.scaling.set(k, k, k);
 
-    showcaseItems.push({ pivot, spin: function(){ this.pivot.rotation.y += 0.012; } });
+    showcaseItems.push({ pivot, charIndex: src.charIndex, spin: function(){ this.pivot.rotation.y += 0.012; } });
   });
   showcaseRoot.setEnabled(false);
+}
+
+const SHOWCASE_BASE = 1.45, SHOWCASE_SEL = 1.9;
+// Pop the chosen character bigger so the showcase mirrors the current selection.
+function setShowcaseHighlight(index) {
+  for (const it of showcaseItems) {
+    const s = it.charIndex === index ? SHOWCASE_SEL : SHOWCASE_BASE;
+    it.pivot.scaling.set(s, s, s);
+    if (it.pivot.getChildren) it.pivot.getChildren().forEach(ch => {
+      if (ch.name && ch.name.indexOf('lblp') === 0) { const k = 1/s; ch.scaling.set(k, k, k); }
+    });
+  }
 }
 
 function enterMenu() {
@@ -720,6 +765,8 @@ function enterMenu() {
   showcaseCam.setTarget(SHOWCASE_CENTER());
   showcaseCam.attachControl(canvas, true);
   renderBest();
+  renderCharPicker();
+  setShowcaseHighlight(selectedCharIndex);
   $('startScreen').classList.remove('hidden');
 }
 
@@ -1020,10 +1067,40 @@ function renderBest() {
   if (el) el.textContent = '🏆 自己ベスト ' + getBest().toLocaleString() + ' m';
 }
 
-// ---------- roster ----------
-function renderRoster() {
+// ---------- character selection (cookie) ----------
+const CHAR_COOKIE = 'dragondash_char';
+function getSelectedCharId() {
+  const m = document.cookie.match(/(?:^|;\s*)dragondash_char=([^;]+)/);
+  if (m) { const v = decodeURIComponent(m[1]); if (CHARACTERS.some(c => c.id === v)) return v; }
+  return CHARACTERS[0].id;   // default: ドラゴン
+}
+function saveSelectedCharId(id) {
+  document.cookie = CHAR_COOKIE + '=' + encodeURIComponent(id) + ';max-age=315360000;path=/;SameSite=Lax';
+}
+
+// Build the tappable character chips on the start screen. The currently-selected
+// one is highlighted; tapping another swaps the player model live + remembers it.
+function renderCharPicker() {
   const el = $('roster'); el.innerHTML = '';
-  ENEMIES.forEach(e => { const c = document.createElement('span'); c.className='chip'; c.textContent = e.name; el.appendChild(c); });
+  CHARACTERS.forEach((c, i) => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'chip char-chip' + (i === selectedCharIndex ? ' sel' : '');
+    chip.textContent = (c.emoji ? c.emoji + ' ' : '') + c.name;
+    chip.dataset.idx = i;
+    chip.addEventListener('pointerup', e => e.stopPropagation());   // don't trigger tap-to-start
+    chip.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); selectCharacter(i); });
+    el.appendChild(chip);
+  });
+}
+function selectCharacter(i) {
+  if (!charTemplates[i]) return;   // model not loaded yet
+  selectedCharIndex = i;
+  saveSelectedCharId(CHARACTERS[i].id);
+  setPlayerCharacter(i);
+  setShowcaseHighlight(i);
+  document.querySelectorAll('#roster .char-chip').forEach(ch => ch.classList.toggle('sel', +ch.dataset.idx === i));
+  notify((CHARACTERS[i].emoji ? CHARACTERS[i].emoji + ' ' : '') + CHARACTERS[i].name + ' で出撃！');
 }
 
 // ---------- input ----------
@@ -1385,8 +1462,9 @@ bindAction('scoreImgBtn', () => downloadScoreImage());
 
 // ---------- boot ----------
 quickPlay = location.hash.indexOf('play') >= 0;
+selectedCharIndex = Math.max(0, CHARACTERS.findIndex(c => c.id === getSelectedCharId()));
 createScene();
-renderRoster();
+renderCharPicker();
 renderBest();
 // hard fallback: never get stuck on the loading screen even if an asset stalls
 setTimeout(() => { if (phase === 'loading') maybeBeginIntro(true); }, 15000);
