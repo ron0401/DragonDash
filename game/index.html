@@ -142,17 +142,17 @@ const ENEMIES = [
 const STAGE_LEN = 2000;
 const STAGES = [
   { name:'マグマだまり', sub:'MAGMA CHAMBER', emoji:'🌋', toast:'#ff8a3a',
-    floor:null, sky:0, env:0.55,
-    clear:[0.06,0.02,0.01], fog:[0.26,0.06,0.03], fogStart:55, fogEnd:210,
-    streak:[1.0,0.50,0.20], gate:[1.0,0.45,0.10], glow:[1.0,0.50,0.20],
-    hemi:[0.50,0.28,0.22], hemiInt:0.7, dir:[1.0,0.55,0.30], dirInt:1.3 },
+    floor:null, sky:0, env:0.30, exposure:0.78,
+    clear:[0.06,0.02,0.01], fog:[0.22,0.05,0.02], fogStart:50, fogEnd:200,
+    streak:[1.0,0.50,0.20], gate:[1.0,0.45,0.10], glow:[1.0,0.45,0.18],
+    hemi:[0.45,0.24,0.18], hemiInt:0.40, dir:[1.0,0.55,0.30], dirInt:0.6 },
   { name:'岩の草原', sub:'ROCKY PLAINS', emoji:'🌿', toast:'#69e36b',
-    floor:null, sky:1, env:1.15,
+    floor:null, sky:1, env:1.15, exposure:1.15,
     clear:[0.55,0.70,0.85], fog:[0.70,0.82,0.92], fogStart:120, fogEnd:330,
     streak:[0.85,1.0,0.85], gate:[0.40,1.0,0.50], glow:[0.60,1.0,0.60],
     hemi:[0.60,0.66,0.60], hemiInt:1.0, dir:[1.0,0.97,0.85], dirInt:2.2 },
   { name:'宇宙空間', sub:'DEEP SPACE', emoji:'🌌', toast:'#9b8cff',
-    floor:null, sky:2, env:0.40,
+    floor:null, sky:2, env:0.40, exposure:1.05,
     clear:[0.0,0.0,0.02], fog:[0.01,0.01,0.04], fogStart:280, fogEnd:900,
     streak:[0.90,0.95,1.0], gate:[0.60,0.40,1.0], glow:[0.50,0.50,1.0],
     hemi:[0.20,0.22,0.40], hemiInt:0.35, dir:[0.60,0.65,1.0], dirInt:0.5 },
@@ -305,8 +305,8 @@ function buildStageMaterials() {
   lava.bumpTexture   = gTex("./assets/ground/lava_normal.jpg", U1, V1, true);
   pbrRoughness(lava, "./assets/ground/lava_rough.jpg", U1, V1);
   lava.emissiveTexture = gTex("./assets/ground/lava_emit.jpg", U1, V1);
-  lava.emissiveColor = new BABYLON.Color3(1, 1, 1); lava.emissiveIntensity = 1.0;   // glowing cracks only (bloom via GlowLayer); keep basalt dark
-  lava.environmentIntensity = 0.55;
+  lava.emissiveColor = new BABYLON.Color3(1, 1, 1); lava.emissiveIntensity = 0.55;   // keep the molten glow in-gamut (orange, not blown white)
+  lava.environmentIntensity = 0.30;
 
   // ── 2nd: 岩の草原 — Poly Haven "aerial_grass_rock" PBR (grass + embedded rock) ──
   const U2 = 7, V2 = 34;
@@ -347,6 +347,7 @@ function setStageTint(k) {
   lerpRGB(dirLight.diffuse, t.dir, k);   dirLight.intensity += (t.dirInt - dirLight.intensity)*k;
   lerpRGB(dragonGlow.diffuse, t.glow, k);
   scene.environmentIntensity += (t.env - (scene.environmentIntensity || 0))*k;
+  if (pipeline && t.exposure != null) { const ip = pipeline.imageProcessing; ip.exposure += (t.exposure - ip.exposure)*k; }
   if (streakMat) lerpRGB(streakMat.emissiveColor, t.streak, k);
 }
 
