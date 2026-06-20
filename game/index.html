@@ -643,8 +643,10 @@ function buildObstacles(useModels) {
 }
 
 function placeObstacle(m, baseZ) {
-  m.position.x = (Math.random()*2-1) * (LANE_W - 1.5);
-  m.position.y = Y_CENTER + (Math.random()*2-1) * (LANE_H - 1.2);
+  // spawn across the FULL play area (player is clamped to ±LANE_W / Y_CENTER±LANE_H),
+  // so hugging an edge or corner is no longer a safe spot — obstacles reach there too.
+  m.position.x = (Math.random()*2-1) * LANE_W;
+  m.position.y = Y_CENTER + (Math.random()*2-1) * LANE_H;
   m.position.z = baseZ + Math.random()*22;
   m.rotation.set(Math.random()*3, Math.random()*3, Math.random()*3);
   if (m.metadata) m.metadata.scored = false;
