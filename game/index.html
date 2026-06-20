@@ -230,10 +230,10 @@ const ENEMIES = [
 const STAGE_LEN = 2000;
 const STAGES = [
   { name:'マグマだまり', sub:'MAGMA CHAMBER', emoji:'🌋', toast:'#ff8a3a',
-    floor:null, sky:0, env:0.62,
-    clear:[0.11,0.04,0.022], fog:[0.26,0.085,0.05], fogStart:95, fogEnd:330,
+    floor:null, sky:0, env:0.34,
+    clear:[0.05,0.018,0.01], fog:[0.16,0.05,0.03], fogStart:95, fogEnd:330,
     streak:[1.0,0.55,0.25], gate:[1.0,0.45,0.10], glow:[1.0,0.55,0.25],
-    hemi:[0.58,0.36,0.28], hemiInt:0.95, dir:[1.0,0.62,0.38], dirInt:1.8 },
+    hemi:[0.40,0.24,0.19], hemiInt:0.5, dir:[1.0,0.58,0.34], dirInt:1.1 },
   { name:'岩の草原', sub:'ROCKY PLAINS', emoji:'🌿', toast:'#69e36b',
     floor:null, sky:1, env:1.15,
     clear:[0.55,0.70,0.85], fog:[0.70,0.82,0.92], fogStart:120, fogEnd:330,
@@ -368,7 +368,7 @@ function loadSkies() {
   // 3rd 宇宙空間: real all-sky Milky Way panorama (ESO/S.Brunier, CC BY 4.0)
   stageSkies[2] = new BABYLON.EquiRectangularCubeTexture("./assets/sky/space.jpg", scene, 1024);
   stageSkies.forEach(t => { t.coordinatesMode = BABYLON.Texture.SKYBOX_MODE; });
-  stageSkies[0].level = 0.78;   // dim the very bright molten panorama, but keep the cavern readable (dragon is emissive-lit, so it still reads)
+  stageSkies[0].level = 0.42;   // strongly dim the very bright molten panorama — it was washing everything out; obstacles/dragon are emissive-lit so they still read against the darker cavern
 }
 
 // ---- ground PBR materials (real CC0 textures) ----
