@@ -1,13 +1,12 @@
 # Dragon Dash 🐉
 
 ドラゴンを操作してトンネルを駆け抜ける Babylon.js 製のブラウザゲーム。
-共有のグローバルリーダーボード付き。
+サーバー不要の完全な静的サイト（GitHub Pages で公開可能）。
 
 ## 構成
 
 ```
 game/
-├── server.py        静的配信 + リーダーボードAPI (Python標準ライブラリのみ)
 ├── index.html       ゲーム本体 (Babylon.js)
 ├── lib/             Babylon.js ランタイム
 ├── bird2.glb        プレイヤー（ドラゴン）モデル
@@ -18,18 +17,22 @@ game/
 > このリポジトリには含めていません（`.gitignore` で除外）。
 > 本リポジトリはゲーム部分のみを管理します。
 
-## 起動
+## 遊び方
+
+`game/index.html` をブラウザで開くだけ。ローカル確認なら任意の静的サーバーでも可:
 
 ```bash
 cd game
-python3 server.py
+python3 -m http.server 8000   # http://localhost:8000
 ```
 
-ブラウザで http://localhost:4001 を開く（ポートは `server.py` の `PORT` で変更可）。
+- 移動 : 矢印キー / WASD / マウスドラッグ
+- 敵に3回ぶつかるとゲームオーバー。緑の💚で体力回復。
+- 最高スコア（自己ベスト）はブラウザのクッキーに保存される。
 
-## リーダーボード
+## GitHub Pages で公開
 
-- `GET  /api/scores` … 上位スコア取得
-- `POST /api/scores` … スコア登録 `{ "name": "...", "distance": 123 }`
-
-スコアは `game/scores.json` に保存される（実行時データのためバージョン管理対象外）。
+静的サイトなのでそのまま公開できる。リポジトリの Settings → Pages で
+公開元ブランチを指定する。URL は `https://<user>.github.io/<repo>/game/` となる。
+（ルート直下を公開URLにしたい場合は `game/` の中身をリポジトリ直下へ移すか、
+Pages の公開フォルダを `game/` に設定する。）

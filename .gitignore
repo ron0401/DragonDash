@@ -5,10 +5,6 @@
 !/README.md
 !/game/
 
-# ゲーム実行時に生成・更新されるデータ
-game/scores.json
-game/scores.json.tmp
-
 # OS / エディタ
 .DS_Store
 *.swp

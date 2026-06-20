@@ -2,12 +2,16 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#04050a" />
 <title>🐉 DRAGON DASH — LEGO Dragon Runner</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #04050a; font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", sans-serif; color:#fff; }
-  #renderCanvas { width: 100%; height: 100%; display: block; touch-action: none; outline: none; }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
+  html, body { position: fixed; inset: 0; width: 100%; height: 100%; height: 100dvh; overflow: hidden; overscroll-behavior: none; touch-action: none; background: #04050a; font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", sans-serif; color:#fff; }
+  #renderCanvas { width: 100%; height: 100%; display: block; touch-action: none; outline: none; -webkit-touch-callout: none; }
 
   #fx { position: fixed; inset: 0; z-index: 10; pointer-events: none; opacity: 0; transition: opacity .15s;
         background: radial-gradient(ellipse 75% 65% at 50% 50%, transparent 60%, rgba(255,120,40,.08) 82%, rgba(255,60,20,.20) 100%); }
@@ -26,48 +30,30 @@
   .panel .big { font-size: 46px; font-weight: 900; color: #fff; margin: 6px 0; text-shadow: 0 0 22px rgba(255,120,40,.55); }
   .keys { margin-top: 12px; font-size: 12px; color: #8d97a8; }
   kbd { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18); border-radius: 6px; padding: 2px 7px; font-family: ui-monospace, monospace; font-size: 11px; }
-  .btn { margin-top: 18px; font: inherit; font-size: 17px; font-weight: 800; color: #fff; cursor: pointer; background: linear-gradient(90deg,#ff8a33,#ff2f5d); border: none; border-radius: 13px; padding: 13px 40px; box-shadow: 0 10px 28px rgba(255,60,80,.4); transition: transform .12s, box-shadow .12s; letter-spacing:.05em; }
+  .btn { margin-top: 18px; font: inherit; font-size: 18px; font-weight: 800; color: #fff; cursor: pointer; background: linear-gradient(90deg,#ff8a33,#ff2f5d); border: none; border-radius: 14px; padding: 15px 44px; min-height: 52px; box-shadow: 0 10px 28px rgba(255,60,80,.4); transition: transform .12s, box-shadow .12s; letter-spacing:.05em; touch-action: manipulation; }
   .btn:hover { transform: translateY(-2px) scale(1.03); box-shadow: 0 16px 38px rgba(255,60,80,.55); }
   .btn:active { transform: translateY(0); }
 
   .roster { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:10px; }
   .chip { font-size:10px; padding:3px 8px; border-radius:20px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12); color:#cfd6e2; }
 
-  .rank { margin: 14px auto 4px; width: min(360px, 80vw); text-align:left; }
-  .rank h3 { font-size:13px; color:#8fa0c0; letter-spacing:.12em; margin-bottom:6px; text-align:center; }
-  .rank ol { list-style:none; counter-reset:r; }
-  .rank li { counter-increment:r; display:flex; justify-content:space-between; align-items:center; padding:4px 10px; border-radius:8px; font-size:13px; }
-  .rank li:nth-child(odd){ background:rgba(255,255,255,.04); }
-  .rank li.me { background:linear-gradient(90deg,rgba(255,140,40,.3),rgba(255,60,90,.25)); box-shadow:0 0 0 1px rgba(255,150,60,.4) inset; }
-  .rank li .pos { width:26px; color:#ffd27a; font-weight:800; }
-  .rank li .pos::before { content:counter(r); }
-  .rank li .nm { flex:1; padding:0 8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .rank li .ds { color:#fff; font-weight:700; font-variant-numeric:tabular-nums; }
-  .rank .empty { text-align:center; color:#6b7689; font-size:12px; padding:8px; }
-
-  .nameEntry { margin-top:14px; }
-  .nameEntry input { font:inherit; font-size:16px; text-align:center; padding:10px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.08); color:#fff; width:min(260px,70vw); }
-  .nameEntry input:focus { outline:none; border-color:#ff8a3a; }
-
-  #hud { position: fixed; top: 0; left: 0; right: 0; z-index: 15; display: flex; justify-content: space-between; align-items: flex-start; padding: 16px 20px; pointer-events: none; }
+  #hud { position: fixed; top: 0; left: 0; right: 0; z-index: 15; display: flex; justify-content: space-between; align-items: flex-start;
+         padding: calc(12px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 12px calc(16px + env(safe-area-inset-left)); pointer-events: none; }
   #hud.hidden { display: none; }
-  .hud-box { background: rgba(8,12,22,.5); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 9px 16px; backdrop-filter: blur(6px); }
-  #dist { font-size: 12px; color: #9aa6b6; letter-spacing:.1em; }
-  #dist b { font-size: 30px; color: #fff; font-weight: 900; display: block; line-height: 1.05; text-shadow:0 0 14px rgba(120,180,255,.5); }
-  #lives { font-size: 26px; letter-spacing: 3px; }
+  .hud-box { background: rgba(8,12,22,.5); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 8px 14px; backdrop-filter: blur(6px); }
+  #dist { font-size: 11px; color: #9aa6b6; letter-spacing:.1em; }
+  #dist b { font-size: clamp(22px, 6vw, 30px); color: #fff; font-weight: 900; display: block; line-height: 1.05; text-shadow:0 0 14px rgba(120,180,255,.5); }
+  #lives { font-size: clamp(20px, 5.5vw, 26px); letter-spacing: 3px; }
   #speed { font-size: 13px; font-weight:800; color: #ffb070; margin-top: 5px; text-align: right; letter-spacing:.06em; transition: color .2s; }
   #speed.boost { color:#ff4d6d; text-shadow:0 0 12px rgba(255,77,109,.8); }
   #combo { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index:15; color:#ffd27a; font-size:15px; font-weight:800; opacity:0; transition:opacity .3s; pointer-events:none; letter-spacing:.1em;}
   #toast { position: fixed; top: 46%; left: 50%; transform: translate(-50%,-50%) scale(.6); z-index: 16; font-size: 38px; font-weight: 900; text-shadow: 0 4px 20px rgba(0,0,0,.6); opacity: 0; transition: opacity .15s, transform .15s; pointer-events: none; white-space:nowrap; }
   /* menu (start screen) shown over the live 3D showcase */
-  #startScreen.menu { background: linear-gradient(to top, rgba(3,5,11,.8), rgba(3,5,11,.15) 32%, transparent 58%); backdrop-filter: none; pointer-events: none; justify-content: flex-end; padding-bottom: 24px; }
+  #startScreen.menu { background: linear-gradient(to top, rgba(3,5,11,.8), rgba(3,5,11,.15) 32%, transparent 58%); backdrop-filter: none; pointer-events: none; justify-content: flex-end; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
   #startScreen.menu .panel { pointer-events: auto; padding: 16px 30px 20px; max-width: min(720px, 95vw); overflow: visible; }
   #startScreen.menu .panel h1 { font-size: 30px; margin-bottom: 2px; }
   #startScreen.menu .panel p { margin: 3px 0; }
   .drag-hint { font-size: 13px; color: #9fe0ff; margin-top: 6px; }
-  #menuRankBox { position: fixed; top: 14px; right: 14px; z-index: 18; width: min(270px, 44vw); background: rgba(12,17,30,.7); border: 1px solid rgba(255,255,255,.1); border-radius: 14px; padding: 10px 14px 12px; pointer-events: auto; backdrop-filter: blur(6px); }
-  #menuRankBox.hidden { display: none; }
-  #menuRankBox .rank { width: auto; margin: 0; }
   .spinner { width:56px; height:56px; margin:0 auto; border-radius:50%; border:5px solid rgba(255,255,255,.15); border-top-color:#ff7a33; border-right-color:#ff3d5d; animation:spin .85s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   #loadingScreen .bar { width:min(280px,70vw); height:8px; margin:16px auto 0; border-radius:6px; background:rgba(255,255,255,.1); overflow:hidden; }
@@ -99,18 +85,15 @@
   </div>
 </div>
 
-<div id="menuRankBox" class="hidden">
-  <div class="rank"><h3>🏆 GLOBAL RANKING</h3><ol id="menuRankList"></ol></div>
-</div>
-
 <div id="startScreen" class="overlay menu hidden">
   <div class="panel">
     <h1>🐉 DRAGON DASH</h1>
     <p style="color:#ff9a6a">敵に3回ぶつかるとゲームオーバー。緑の💚で体力回復！</p>
-    <p class="drag-hint">🖱️ ドラッグでモデルをグリグリ回せます ・ ホイールでズーム</p>
+    <p class="drag-hint">🖐️ モデルをドラッグでグリグリ ・ ピンチでズーム</p>
     <div class="roster" id="roster"></div>
-    <div class="keys">移動 : <kbd>← ↑ ↓ →</kbd> / <kbd>W A S D</kbd> / ドラッグ</div>
-    <button class="btn" id="startBtn">▶ スタート</button>
+    <p id="menuBest" style="color:#ffd27a">🏆 自己ベスト 0 m</p>
+    <div class="keys">操作 : 画面を<b>スワイプ</b>して移動（マウスはドラッグ）</div>
+    <button class="btn" id="startBtn">▶ スタート / タップで開始</button>
   </div>
 </div>
 
@@ -119,12 +102,8 @@
     <h2>GAME OVER</h2>
     <p>とうたつ距離</p>
     <div class="big" id="finalDist">0 m</div>
-    <div class="nameEntry hidden" id="nameEntry">
-      <p style="color:#ffd27a">🎉 TOP10入り！名前を登録しよう</p>
-      <input id="nameInput" maxlength="12" placeholder="なまえ (12文字まで)" />
-      <button class="btn" id="submitBtn" style="margin-top:10px;padding:10px 28px;font-size:15px">登録する</button>
-    </div>
-    <div class="rank" id="overRank"><h3>🏆 GLOBAL RANKING</h3><ol id="overRankList"></ol></div>
+    <p id="newRecord" class="hidden" style="color:#46ff8c;font-weight:800;font-size:15px">🎉 自己ベスト更新！</p>
+    <p id="bestDist" style="color:#ffd27a">🏆 自己ベスト 0 m</p>
     <button class="btn" id="retryBtn">↻ もう一度</button>
   </div>
 </div>
@@ -173,7 +152,6 @@ let nextHealAt = 600;
 let target = { x: 0, y: Y_CENTER };
 const keys = {};
 let pointerDown = false;
-let bestScores = [];
 const $ = id => document.getElementById(id);
 
 // ---------- scene ----------
@@ -523,8 +501,8 @@ function enterMenu() {
   showcaseCam.alpha = -Math.PI/2; showcaseCam.beta = Math.PI/2.25; showcaseCam.radius = 30;
   showcaseCam.setTarget(SHOWCASE_CENTER());
   showcaseCam.attachControl(canvas, true);
+  renderBest();
   $('startScreen').classList.remove('hidden');
-  $('menuRankBox').classList.remove('hidden');
 }
 
 function leaveMenu() {
@@ -532,7 +510,6 @@ function leaveMenu() {
   if (showcaseCam) showcaseCam.detachControl();
   dragonRoot.setEnabled(true);
   scene.activeCamera = camera;
-  $('menuRankBox').classList.add('hidden');
 }
 
 // ---------- game flow ----------
@@ -559,8 +536,12 @@ function gameOver() {
   if (sparkBurst) sparkBurst.manualEmitCount = 320;
   const d = Math.floor(distance);
   $('finalDist').textContent = d.toLocaleString() + ' m';
+  const prevBest = getBest();
+  const isNew = d > prevBest && d > 0;
+  if (isNew) saveBest(d);
+  $('newRecord').classList.toggle('hidden', !isNew);
+  $('bestDist').textContent = '🏆 自己ベスト ' + getBest().toLocaleString() + ' m';
   $('overScreen').classList.remove('hidden');
-  handleScore(d);
 }
 function updateHud() {
   $('dist').innerHTML = 'DISTANCE<b>' + Math.floor(distance).toLocaleString() + ' m</b>';
@@ -756,47 +737,18 @@ function animateAmbient(dt, tms, spd) {
   }
 }
 
-// ---------- leaderboard ----------
-function renderRank(listEl, scores, myIdx) {
-  listEl.innerHTML = '';
-  if (!scores || !scores.length) { listEl.innerHTML = '<div class="empty">まだ記録がありません</div>'; return; }
-  scores.slice(0,10).forEach((s, i) => {
-    const li = document.createElement('li'); if (i === myIdx) li.className = 'me';
-    li.innerHTML = '<span class="pos"></span><span class="nm"></span><span class="ds"></span>';
-    li.querySelector('.nm').textContent = s.name;
-    li.querySelector('.ds').textContent = Number(s.distance).toLocaleString() + ' m';
-    listEl.appendChild(li);
-  });
+// ---------- best score (cookie) ----------
+const BEST_COOKIE = 'dragondash_best';
+function getBest() {
+  const m = document.cookie.match(/(?:^|;\s*)dragondash_best=(\d+)/);
+  return m ? parseInt(m[1], 10) : 0;
 }
-function fetchScores() {
-  return fetch('/api/scores').then(r => r.json()).then(j => { bestScores = j.scores || []; return bestScores; }).catch(() => bestScores);
+function saveBest(v) {
+  document.cookie = BEST_COOKIE + '=' + v + ';max-age=315360000;path=/;SameSite=Lax';
 }
-function refreshMenuRank() { fetchScores().then(s => renderRank($('menuRankList'), s, -1)); }
-
-let pendingScore = 0;
-function handleScore(d) {
-  pendingScore = d;
-  $('nameEntry').classList.add('hidden');
-  fetchScores().then(scores => {
-    const qualifies = scores.length < 10 || d > (scores[scores.length-1]?.distance ?? -1) || scores.length < 10;
-    const willRank = scores.length < 10 || d > (scores[Math.min(9, scores.length-1)]?.distance ?? -1);
-    renderRank($('overRankList'), scores, -1);
-    if (willRank && d > 0) {
-      $('nameEntry').classList.remove('hidden');
-      setTimeout(() => $('nameInput').focus(), 100);
-    }
-  });
-}
-function submitScore() {
-  const name = ($('nameInput').value || '').trim() || '名無し';
-  $('submitBtn').disabled = true;
-  fetch('/api/scores', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name, distance: pendingScore }) })
-    .then(r => r.json()).then(j => {
-      bestScores = j.scores || [];
-      renderRank($('overRankList'), bestScores, (j.rank ? j.rank-1 : -1));
-      $('nameEntry').classList.add('hidden');
-      refreshMenuRank();
-    }).catch(()=>{}).finally(()=> $('submitBtn').disabled = false);
+function renderBest() {
+  const el = $('menuBest');
+  if (el) el.textContent = '🏆 自己ベスト ' + getBest().toLocaleString() + ' m';
 }
 
 // ---------- roster ----------
@@ -811,30 +763,50 @@ addEventListener('keydown', e => {
   if ((k === ' ' || k === 'enter')) {
     if (phase === 'intro') { introT = INTRO_DUR; }
     else if (phase === 'menu' || phase === 'over') {
-      if (phase === 'over' && !$('nameEntry').classList.contains('hidden') && document.activeElement === $('nameInput')) return;
       startGame();
     }
   }
   if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
 });
 addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
-function pointerToWorld(ev) {
-  const r = canvas.getBoundingClientRect();
-  const px = (ev.clientX - r.left)/r.width, py = (ev.clientY - r.top)/r.height;
-  target.x = Math.max(-LANE_W, Math.min(LANE_W, (px*2-1)*LANE_W));
-  target.y = Math.max(Y_CENTER-LANE_H, Math.min(Y_CENTER+LANE_H, Y_CENTER - (py*2-1)*LANE_H));
+
+// tap & swipe (touch) / click & drag (mouse): drag anywhere to steer relatively
+const SWIPE_SENS = 2.6;   // a full-screen swipe ≈ this many lane-widths of travel
+let lastPX = 0, lastPY = 0;
+function clampTarget() {
+  target.x = Math.max(-LANE_W, Math.min(LANE_W, target.x));
+  target.y = Math.max(Y_CENTER-LANE_H, Math.min(Y_CENTER+LANE_H, target.y));
 }
-canvas.addEventListener('pointerdown', e => { pointerDown = true; if (phase==='playing') pointerToWorld(e); });
-canvas.addEventListener('pointermove', e => { if (pointerDown && phase==='playing') pointerToWorld(e); });
-addEventListener('pointerup', () => pointerDown = false);
-$('startBtn').onclick = startGame; $('retryBtn').onclick = startGame; $('submitBtn').onclick = submitScore;
-$('nameInput') && $('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submitScore(); } });
+canvas.addEventListener('pointerdown', e => {
+  pointerDown = true; lastPX = e.clientX; lastPY = e.clientY;
+  if (canvas.setPointerCapture) { try { canvas.setPointerCapture(e.pointerId); } catch (_) {} }
+});
+canvas.addEventListener('pointermove', e => {
+  if (!pointerDown || phase !== 'playing') return;
+  const r = canvas.getBoundingClientRect();
+  const dx = e.clientX - lastPX, dy = e.clientY - lastPY;
+  lastPX = e.clientX; lastPY = e.clientY;
+  target.x += (dx / r.width)  * LANE_W * SWIPE_SENS;
+  target.y -= (dy / r.height) * LANE_H * SWIPE_SENS;
+  clampTarget();
+});
+const endPointer = () => { pointerDown = false; };
+addEventListener('pointerup', endPointer);
+addEventListener('pointercancel', endPointer);
+// block long-press context menu / iOS callout so dragging feels native
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+// tap-to-start: anywhere on the menu / game-over screens (buttons still work too)
+const tapStart = e => { e.preventDefault(); startGame(); };
+$('startScreen').addEventListener('pointerup', e => { if (phase === 'menu') tapStart(e); });
+$('overScreen').addEventListener('pointerup', e => { if (phase === 'over') tapStart(e); });
+$('startBtn').onclick = startGame; $('retryBtn').onclick = startGame;
 
 // ---------- boot ----------
 quickPlay = location.hash.indexOf('play') >= 0;
 createScene();
 renderRoster();
-refreshMenuRank();
+renderBest();
 // hard fallback: never get stuck on the loading screen even if an asset stalls
 setTimeout(() => { if (phase === 'loading') maybeBeginIntro(true); }, 15000);
 let last = performance.now();
@@ -843,6 +815,8 @@ engine.runRenderLoop(() => {
   update(dt); scene.render();
 });
 addEventListener('resize', () => engine.resize());
+addEventListener('orientationchange', () => setTimeout(() => engine.resize(), 250));
+if (window.visualViewport) window.visualViewport.addEventListener('resize', () => engine.resize());
 </script>
 </body>
 </html>
