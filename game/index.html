@@ -305,7 +305,7 @@ function buildStageMaterials() {
   lava.bumpTexture   = gTex("./assets/ground/lava_normal.jpg", U1, V1, true);
   pbrRoughness(lava, "./assets/ground/lava_rough.jpg", U1, V1);
   lava.emissiveTexture = gTex("./assets/ground/lava_emit.jpg", U1, V1);
-  lava.emissiveColor = new BABYLON.Color3(1, 1, 1); lava.emissiveIntensity = 3.2;   // glowing cracks (bloom via GlowLayer)
+  lava.emissiveColor = new BABYLON.Color3(1, 1, 1); lava.emissiveIntensity = 1.0;   // glowing cracks only (bloom via GlowLayer); keep basalt dark
   lava.environmentIntensity = 0.55;
 
   // ── 2nd: 岩の草原 — Poly Haven "aerial_grass_rock" PBR (grass + embedded rock) ──
