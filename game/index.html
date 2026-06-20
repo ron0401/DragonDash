@@ -110,7 +110,6 @@
 
 <script src="./lib/babylon.js"></script>
 <script src="./lib/babylonjs.loaders.min.js"></script>
-<script src="./lib/babylonjs.materials.min.js"></script>
 <script>
 const canvas = document.getElementById('renderCanvas');
 const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true, antialias: true });
@@ -135,30 +134,35 @@ const ENEMIES = [
   { file:'evil_spirit.glb',     name:'悪い精霊' },
 ];
 
-// ---------- stages (Babylon Materials Library demo) ----------
+// ---------- stages ----------
 // distance-driven progression: 0-2000 → 1st, 2000-4000 → 2nd, 4000+ → 3rd
-// 1st: マグマだまり (LavaMaterial) / 2nd: 岩の草原 (CellMaterial + GridMaterial) / 3rd: 宇宙空間 (GridMaterial)
+// 1st: マグマだまり / 2nd: 岩の草原 / 3rd: 宇宙空間 — built from free CC0 PBR
+// textures (ambientCG Lava004) + HDRI/panorama skyboxes (Poly Haven / ESO).
+// `.floor` / `.sky` are filled in by buildStageMaterials()/loadSkies().
 const STAGE_LEN = 2000;
 const STAGES = [
   { name:'マグマだまり', sub:'MAGMA CHAMBER', emoji:'🌋', toast:'#ff8a3a',
-    clear:[0.10,0.02,0.01], fog:[0.30,0.06,0.02], fogStart:80, fogEnd:185,
-    streak:[1.0,0.45,0.15], gate:[1.0,0.45,0.10], glow:[1.0,0.55,0.20],
-    hemi:[0.55,0.30,0.26], hemiInt:1.5, dir:[1.0,0.62,0.40] },
+    floor:null, sky:0, env:0.55,
+    clear:[0.06,0.02,0.01], fog:[0.26,0.06,0.03], fogStart:55, fogEnd:210,
+    streak:[1.0,0.50,0.20], gate:[1.0,0.45,0.10], glow:[1.0,0.50,0.20],
+    hemi:[0.50,0.28,0.22], hemiInt:0.7, dir:[1.0,0.55,0.30], dirInt:1.3 },
   { name:'岩の草原', sub:'ROCKY PLAINS', emoji:'🌿', toast:'#69e36b',
-    clear:[0.32,0.46,0.58], fog:[0.46,0.60,0.62], fogStart:95, fogEnd:205,
-    streak:[0.70,1.0,0.70], gate:[0.40,1.0,0.50], glow:[0.60,1.0,0.60],
-    hemi:[0.56,0.62,0.50], hemiInt:1.95, dir:[1.0,0.98,0.86] },
+    floor:null, sky:1, env:1.15,
+    clear:[0.55,0.70,0.85], fog:[0.70,0.82,0.92], fogStart:120, fogEnd:330,
+    streak:[0.85,1.0,0.85], gate:[0.40,1.0,0.50], glow:[0.60,1.0,0.60],
+    hemi:[0.60,0.66,0.60], hemiInt:1.0, dir:[1.0,0.97,0.85], dirInt:2.2 },
   { name:'宇宙空間', sub:'DEEP SPACE', emoji:'🌌', toast:'#9b8cff',
-    clear:[0.010,0.010,0.045], fog:[0.03,0.02,0.10], fogStart:150, fogEnd:360,
+    floor:null, sky:2, env:0.40,
+    clear:[0.0,0.0,0.02], fog:[0.01,0.01,0.04], fogStart:280, fogEnd:900,
     streak:[0.90,0.95,1.0], gate:[0.60,0.40,1.0], glow:[0.50,0.50,1.0],
-    hemi:[0.30,0.32,0.52], hemiInt:1.25, dir:[0.70,0.75,1.0] },
+    hemi:[0.20,0.22,0.40], hemiInt:0.35, dir:[0.60,0.65,1.0], dirInt:0.5 },
 ];
 function stageForDistance(d) { return Math.min(STAGES.length - 1, Math.floor(d / STAGE_LEN)); }
 
 // ---------- state ----------
 let scene, camera, showcaseCam, pipeline, dragonRoot, dragonBank, dragonFacing, dragonGlow, fireTrail, sparkBurst;
 let hemiLight, dirLight, fillLight;
-let tunnelFloors = [], tunnelCeils = [], stageMats = [], streakMat = null;
+let tunnelFloors = [], tunnelCeils = [], stageSkies = [], skybox, skyMat, streakMat = null;
 let currentStageIndex = -1, stageTgt = STAGES[0];
 let obstacles = [], heals = [], gates = [], streaks = [];
 let templates = [];
@@ -189,13 +193,13 @@ function createScene() {
   scene.fogStart = 95; scene.fogEnd = 175;                         // push fog back so obstacles read early
 
   camera = new BABYLON.UniversalCamera("cam", new BABYLON.Vector3(0, Y_CENTER + 3, -12), scene);
-  camera.fov = 1.15; camera.minZ = 0.1; camera.maxZ = 480;
+  camera.fov = 1.15; camera.minZ = 0.3; camera.maxZ = 2200;   // maxZ holds the skybox
 
   // orbit camera for the start-screen model showcase (mouse drag to spin around)
   showcaseCam = new BABYLON.ArcRotateCamera("showcam", -Math.PI/2, Math.PI/2.25, 30,
     SHOWCASE_CENTER(), scene);
   showcaseCam.lowerRadiusLimit = 12; showcaseCam.upperRadiusLimit = 48;
-  showcaseCam.wheelPrecision = 18; showcaseCam.panningSensibility = 0; showcaseCam.minZ = 0.1; showcaseCam.maxZ = 480;
+  showcaseCam.wheelPrecision = 18; showcaseCam.panningSensibility = 0; showcaseCam.minZ = 0.1; showcaseCam.maxZ = 2200;
   showcaseCam.fov = 1.0;
 
   hemiLight = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0.2, 1, 0.3), scene);
@@ -203,21 +207,22 @@ function createScene() {
   dirLight = new BABYLON.DirectionalLight("dir", new BABYLON.Vector3(-0.4, -0.8, 0.55), scene);
   dirLight.intensity = 2.2; dirLight.position = new BABYLON.Vector3(20, 40, -20);
   fillLight = new BABYLON.DirectionalLight("fill", new BABYLON.Vector3(0.2, -0.1, -1), scene);
-  fillLight.intensity = 1.3; fillLight.diffuse = new BABYLON.Color3(1.0, 0.95, 0.85);
+  fillLight.intensity = 0.4; fillLight.diffuse = new BABYLON.Color3(1.0, 0.95, 0.85);   // mild; IBL does the heavy lifting
 
   dragonGlow = new BABYLON.PointLight("dglow", new BABYLON.Vector3(0, Y_CENTER, 0), scene);
   dragonGlow.diffuse = new BABYLON.Color3(1.0, 0.6, 0.25); dragonGlow.intensity = 1.2; dragonGlow.range = 26;
 
-  const gl = new BABYLON.GlowLayer("glow", scene); gl.intensity = 0.55;
+  const gl = new BABYLON.GlowLayer("glow", scene); gl.intensity = 0.8;   // makes the molten lava cracks bloom
 
   setupPipeline();
-  buildTunnel(); buildWarp(); buildGates();
+  buildSky(); buildTunnel(); buildWarp(); buildGates();
 
   dragonRoot = new BABYLON.TransformNode("dragonRoot", scene);
   dragonBank = new BABYLON.TransformNode("dragonBank", scene); dragonBank.parent = dragonRoot;     // roll/pitch (world frame)
   dragonFacing = new BABYLON.TransformNode("dragonFacing", scene); dragonFacing.parent = dragonBank; // constant yaw
   dragonFacing.rotation.y = DRAGON_YAW;
 
+  loadSkies();
   buildStageMaterials();
   applyStage(0, false);
   setStageTint(1);          // snap scene tint to the 1st stage at boot
@@ -256,84 +261,77 @@ function buildTunnel() {
   }
 }
 
-// ---- procedural textures (so stages stay self-contained, no external image files) ----
-function valueNoise(size, baseCells, octaves) {
-  const out = new Float32Array(size*size);
-  let amp = 1, tot = 0;
-  for (let o = 0; o < octaves; o++) {
-    const c = baseCells * (1 << o), w = c + 1, lat = new Float32Array(w*w);
-    for (let i = 0; i < lat.length; i++) lat[i] = Math.random();
-    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
-      const fx = x/size*c, fy = y/size*c, x0 = Math.floor(fx), y0 = Math.floor(fy);
-      const tx = fx-x0, ty = fy-y0, sx = tx*tx*(3-2*tx), sy = ty*ty*(3-2*ty);
-      const a = lat[y0*w+x0], b = lat[y0*w+x0+1], cc = lat[(y0+1)*w+x0], d = lat[(y0+1)*w+x0+1];
-      const top = a+(b-a)*sx, bot = cc+(d-cc)*sx;
-      out[y*size+x] += (top+(bot-top)*sy)*amp;
-    }
-    tot += amp; amp *= 0.5;
-  }
-  for (let i = 0; i < out.length; i++) out[i] /= tot;
-  return out;
+// ---- skyboxes (real CC0 HDRI / panorama backgrounds) ----
+function buildSky() {
+  skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000 }, scene);
+  skybox.infiniteDistance = true; skybox.isPickable = false; skybox.applyFog = false; skybox.renderingGroupId = 0;
+  skyMat = new BABYLON.StandardMaterial("skyBoxMat", scene);
+  skyMat.backFaceCulling = false; skyMat.disableLighting = true;
+  skyMat.diffuseColor = new BABYLON.Color3(0,0,0); skyMat.specularColor = new BABYLON.Color3(0,0,0);
+  skybox.material = skyMat;
 }
-function noiseTexture(name, size, baseCells, octaves, paint) {
-  const n = valueNoise(size, baseCells, octaves);
-  const dt = new BABYLON.DynamicTexture(name, size, scene, false);
-  const ctx = dt.getContext(), img = ctx.createImageData(size, size);
-  for (let i = 0; i < size*size; i++) {
-    const rgb = paint(n[i], i % size, (i/size)|0);
-    img.data[i*4] = rgb[0]; img.data[i*4+1] = rgb[1]; img.data[i*4+2] = rgb[2]; img.data[i*4+3] = 255;
-  }
-  ctx.putImageData(img, 0, 0); dt.update();
-  return dt;
+function loadSkies() {
+  // 1st マグマだまり: fiery sky (Poly Haven "the_sky_is_on_fire", CC0)
+  // args: url, scene, size, noMipmap=false, generateHarmonics=true, gammaSpace=false, prefilterOnLoad=true
+  stageSkies[0] = new BABYLON.HDRCubeTexture("./assets/sky/magma.hdr", scene, 512, false, true, false, true);
+  // 2nd 岩の草原: partly-cloudy blue sky (Poly Haven "kloofendal_48d_partly_cloudy_puresky", CC0)
+  stageSkies[1] = new BABYLON.HDRCubeTexture("./assets/sky/grass.hdr", scene, 512, false, true, false, true);
+  // 3rd 宇宙空間: real all-sky Milky Way panorama (ESO/S.Brunier, CC BY 4.0)
+  stageSkies[2] = new BABYLON.EquiRectangularCubeTexture("./assets/sky/space.jpg", scene, 1024);
+  stageSkies.forEach(t => { t.coordinatesMode = BABYLON.Texture.SKYBOX_MODE; });
 }
 
+// ---- ground PBR materials (real CC0 textures) ----
+function gTex(file, u, v, linear) {
+  const t = new BABYLON.Texture(file, scene);
+  t.uScale = u; t.vScale = v;
+  t.wrapU = t.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+  if (linear) t.gammaSpace = false;     // normal / roughness are data, not colour
+  return t;
+}
+function pbrRoughness(mat, file, u, v) {
+  mat.metallic = 0; mat.roughness = 1;
+  mat.metallicTexture = gTex(file, u, v, true);
+  mat.useRoughnessFromMetallicTextureGreen = true;
+  mat.useRoughnessFromMetallicTextureAlpha = false;
+  mat.useMetallnessFromMetallicTextureBlue = false;
+  mat.useAmbientOcclusionFromMetallicTextureRed = false;
+}
 function buildStageMaterials() {
-  // ── 1st: マグマだまり — LavaMaterial (animated molten rock) ──
-  const lavaNoise = noiseTexture("lavaNoise", 256, 5, 4, v => { const c = (v*255)|0; return [c,c,c]; });
-  const lavaTile  = noiseTexture("lavaTile", 256, 6, 4, v => {
-    if (v < 0.45) { const t = v/0.45;            return [10+t*60, 2+t*12, 0]; }          // dark crust
-    if (v < 0.70) { const t = (v-0.45)/0.25;     return [70+t*150, 14+t*58, 0]; }        // red→orange
-    const t = (v-0.70)/0.30;                     return [220+t*35, 72+t*150, t*70];      // hot yellow
-  });
-  lavaTile.uScale = 4; lavaTile.vScale = 24;
-  const lava = new BABYLON.LavaMaterial("lavaMat", scene);
-  lava.noiseTexture = lavaNoise; lava.diffuseTexture = lavaTile;
-  lava.speed = 0.6; lava.movingSpeed = 8; lava.lowFrequencySpeed = 1.2;
-  lava.fogColor = new BABYLON.Color3(0.35, 0.04, 0.0);
-  lava.backFaceCulling = false;
+  // ── 1st: マグマだまり — ambientCG "Lava004" PBR (colour + normal + roughness + glowing emission) ──
+  const U1 = 5, V1 = 30;
+  const lava = new BABYLON.PBRMaterial("lavaGround", scene);
+  lava.albedoTexture = gTex("./assets/ground/lava_color.jpg", U1, V1);
+  lava.bumpTexture   = gTex("./assets/ground/lava_normal.jpg", U1, V1, true);
+  pbrRoughness(lava, "./assets/ground/lava_rough.jpg", U1, V1);
+  lava.emissiveTexture = gTex("./assets/ground/lava_emit.jpg", U1, V1);
+  lava.emissiveColor = new BABYLON.Color3(1, 1, 1); lava.emissiveIntensity = 3.2;   // glowing cracks (bloom via GlowLayer)
+  lava.environmentIntensity = 0.55;
 
-  // ── 2nd: 岩の草原 — CellMaterial grass floor + GridMaterial sky ceiling ──
-  const grassTex = noiseTexture("grassTex", 256, 7, 4, v => {
-    if (v > 0.66) { const t = (v-0.66)/0.34; return [(92+t*70)|0, (88+t*52)|0, (72+t*46)|0]; } // rock/dirt
-    const t = v/0.66; return [(28+t*38)|0, (78+t*92)|0, (30+t*34)|0];                            // grass
-  });
-  grassTex.uScale = 6; grassTex.vScale = 30;
-  const grass = new BABYLON.CellMaterial("grassMat", scene);
-  grass.diffuseTexture = grassTex; grass.computeHighLevel = true; grass.backFaceCulling = false;
-  const sky = new BABYLON.GridMaterial("skyMat", scene);
-  sky.mainColor = new BABYLON.Color3(0.45, 0.66, 0.96); sky.lineColor = new BABYLON.Color3(0.85, 0.93, 1.0);
-  sky.gridRatio = 4; sky.majorUnitFrequency = 6; sky.minorUnitVisibility = 0.25; sky.opacity = 0.85;
-  sky.backFaceCulling = false;
+  // ── 2nd: 岩の草原 — Poly Haven "aerial_grass_rock" PBR (grass + embedded rock) ──
+  const U2 = 7, V2 = 34;
+  const grass = new BABYLON.PBRMaterial("grassGround", scene);
+  grass.albedoTexture = gTex("./assets/ground/grass_color.jpg", U2, V2);
+  grass.bumpTexture   = gTex("./assets/ground/grass_normal.jpg", U2, V2, true);
+  pbrRoughness(grass, "./assets/ground/grass_rough.jpg", U2, V2);
+  grass.ambientTexture = gTex("./assets/ground/grass_ao.jpg", U2, V2, true);
+  grass.environmentIntensity = 1.1;
 
-  // ── 3rd: 宇宙空間 — GridMaterial energy grid (dark, neon lines) ──
-  const space = new BABYLON.GridMaterial("spaceMat", scene);
-  space.mainColor = new BABYLON.Color3(0.015, 0.015, 0.05); space.lineColor = new BABYLON.Color3(0.5, 0.35, 1.0);
-  space.gridRatio = 2; space.majorUnitFrequency = 5; space.minorUnitVisibility = 0.45; space.opacity = 0.92;
-  space.backFaceCulling = false;
-
-  stageMats = [
-    { floor: lava,  ceil: lava },
-    { floor: grass, ceil: sky },
-    { floor: space, ceil: space },
-  ];
+  STAGES[0].floor = lava;
+  STAGES[1].floor = grass;
+  STAGES[2].floor = null;   // 宇宙空間: no ground — fly through the stars
 }
 
 function applyStage(i, announce) {
   if (i === currentStageIndex) return;
   currentStageIndex = i;
-  const st = STAGES[i], mat = stageMats[i];
-  tunnelFloors.forEach(f => f.material = mat.floor);
-  tunnelCeils.forEach(c => c.material = mat.ceil);
+  const st = STAGES[i];
+  // floor: lava / grass visible, space has none. ceiling is always replaced by the skybox.
+  tunnelFloors.forEach(f => { if (st.floor) f.material = st.floor; f.setEnabled(!!st.floor); });
+  tunnelCeils.forEach(c => c.setEnabled(false));
+  // swap the live skybox + image-based lighting
+  const sky = stageSkies[st.sky];
+  if (sky) { skyMat.reflectionTexture = sky; scene.environmentTexture = sky; }
   stageTgt = st;
   if (announce) { flashToast(st.emoji + ' ' + st.name, st.toast); flashCombo('STAGE ' + (i+1) + ' — ' + st.sub); }
 }
@@ -346,8 +344,9 @@ function setStageTint(k) {
   scene.fogStart += (t.fogStart - scene.fogStart)*k;
   scene.fogEnd   += (t.fogEnd   - scene.fogEnd)*k;
   lerpRGB(hemiLight.diffuse, t.hemi, k); hemiLight.intensity += (t.hemiInt - hemiLight.intensity)*k;
-  lerpRGB(dirLight.diffuse, t.dir, k);
+  lerpRGB(dirLight.diffuse, t.dir, k);   dirLight.intensity += (t.dirInt - dirLight.intensity)*k;
   lerpRGB(dragonGlow.diffuse, t.glow, k);
+  scene.environmentIntensity += (t.env - (scene.environmentIntensity || 0))*k;
   if (streakMat) lerpRGB(streakMat.emissiveColor, t.streak, k);
 }
 

@@ -16,7 +16,8 @@ game/
 ├── index.html       ゲーム本体 (Babylon.js)
 ├── lib/             Babylon.js ランタイム
 ├── bird2.glb        プレイヤー（ドラゴン）モデル
-└── models/          敵キャラクターモデル (6体)
+├── models/          敵キャラクターモデル (6体)
+└── assets/          ステージ用フリー素材 (PBRテクスチャ / スカイボックス)
 ```
 
 > 3Dモデルの生成パイプライン（TRELLIS や元写真、.ply / .mp4 などの中間生成物）は
@@ -35,10 +36,21 @@ python3 -m http.server 8000   # http://localhost:8000
 - 移動 : 矢印キー / WASD / マウスドラッグ
 - 敵に3回ぶつかるとゲームオーバー。緑の💚で体力回復。
 - 最高スコア（自己ベスト）はブラウザのクッキーに保存される。
-- 距離に応じてステージが変化（Babylon.js Materials Library 使用）:
-  - 0–2000m : 🌋 1st マグマだまり（LavaMaterial）
-  - 2000–4000m : 🌿 2nd 岩の草原（CellMaterial + GridMaterial）
-  - 4000m– : 🌌 3rd 宇宙空間（GridMaterial）
+- 距離に応じてステージが変化（実写ベースのフリー素材で表現）:
+  - 0–2000m : 🌋 1st マグマだまり（溶岩PBRテクスチャ＋発光する割れ目、燃える空）
+  - 2000–4000m : 🌿 2nd 岩の草原（草＋岩のPBR地面、青空HDRI）
+  - 4000m– : 🌌 3rd 宇宙空間（天の川全天パノラマ、地面なしで星空を飛ぶ）
+- 各ステージは PBR 地面マテリアル＋HDRI/パノラマのスカイボックス（IBL）で
+  ライティングし、フォグ・ライト色をなめらかに切り替える。
+
+## 素材クレジット（フリー素材）
+
+ステージの見た目は以下の無料素材を利用しています:
+
+- **溶岩テクスチャ**: [ambientCG](https://ambientcg.com) "Lava004" — CC0
+- **草＋岩テクスチャ**: [Poly Haven](https://polyhaven.com) "aerial_grass_rock" — CC0
+- **燃える空 / 青空 HDRI**: Poly Haven "the_sky_is_on_fire" / "kloofendal_48d_partly_cloudy_puresky" — CC0
+- **天の川 全天パノラマ**: ESO/S. Brunier ([eso0932a](https://www.eso.org/public/images/eso0932a/)) — CC BY 4.0
 
 ## GitHub Pages で公開
 
