@@ -228,6 +228,14 @@ window.__showBoot = function (msg) {
     if (t && ls && ls.className.indexOf('hidden') < 0) {
       t.style.color = '#ff7a7a';
       t.style.whiteSpace = 'pre-wrap';
+      t.style.wordBreak = 'break-all';        // wrap long URLs so nothing is cut off
+      t.style.fontSize = '11px';
+      t.style.lineHeight = '1.45';
+      t.style.maxWidth = '92vw';
+      t.style.maxHeight = '55vh';
+      t.style.overflow = 'auto';
+      t.style.textAlign = 'left';
+      t.style.margin = '12px auto 0';
       t.textContent = '⚠️ 読み込みエラー\n' + msg;
     }
   } catch (e) {}
@@ -401,6 +409,7 @@ let photoBusy = false;
 let assetsLoaded = 0;
 const assetsTotal = CHARACTERS.length;    // dragon + 6 others
 let dragonReady = false;
+let bootStep = 'start';   // which createScene() step is running, for boot-error diagnostics
 let quickPlay = false;
 let veryHard = false;             // current run uses Very Hard Mode (3→6x, subspace)
 let lives = 3, distance = 0, speed = BASE_SPEED, invuln = 0, shake = 0, camRoll = 0, dodgeCombo = 0, comboTimer = 0;
@@ -446,25 +455,37 @@ function createScene() {
   // these model loads completing, so if any GPU step throws on a constrained device
   // (iOS especially) the bar still progresses and the error gets surfaced — instead
   // of the screen sitting silently at 0%.
+  bootStep = 'transform+loadCharacters';
   dragonRoot = new BABYLON.TransformNode("dragonRoot", scene);
   dragonBank = new BABYLON.TransformNode("dragonBank", scene); dragonBank.parent = dragonRoot;     // roll/pitch (world frame)
   dragonFacing = new BABYLON.TransformNode("dragonFacing", scene); dragonFacing.parent = dragonBank; // constant yaw
   dragonFacing.rotation.y = DRAGON_YAW;
   loadCharacters();
 
+  bootStep = 'GlowLayer';
   const gl = new BABYLON.GlowLayer("glow", scene); gl.intensity = 0.35;   // subtle bloom on lava cracks / fire — kept low so it doesn't wash the magma stage white
 
+  bootStep = 'setupPipeline';
   setupPipeline();
+  bootStep = 'buildSky/Tunnel/Warp/Gates';
   buildSky(); buildTunnel(); buildWarp(); buildGates();
 
+  bootStep = 'loadSkies';
   loadSkies();
+  bootStep = 'buildStageMaterials';
   buildStageMaterials();
+  bootStep = 'applyStage';
   applyStage(0, false);
+  bootStep = 'setStageTint';
   setStageTint(1);          // snap scene tint to the 1st stage at boot
 
+  bootStep = 'buildFireTrail';
   buildFireTrail();
+  bootStep = 'buildHeals';
   buildHeals();
+  bootStep = 'buildObstacles';
   buildObstacles(false);   // boxes until models ready
+  bootStep = 'done';
   return scene;
 }
 
@@ -1844,7 +1865,10 @@ try {
   renderBest();
 } catch (e) {
   console.error('boot failed', e);
-  reportBootError((e && (e.stack || e.message)) || String(e));
+  // Safari's e.stack omits the message line, so show name+message explicitly,
+  // plus which createScene() step was running when it threw.
+  const head = e ? ((e.name || 'Error') + ': ' + (e.message || String(e))) : 'unknown';
+  reportBootError('[' + bootStep + '] ' + head + '\n' + ((e && e.stack) || ''));
 }
 // hard fallback: never get stuck on the loading screen even if an asset stalls
 setTimeout(() => { if (phase === 'loading') maybeBeginIntro(true); }, 15000);
