@@ -1,5 +1,5 @@
 /* Dragon Dash — Service Worker (offline-capable PWA) */
-const VERSION = "v1";
+const VERSION = "v2";
 const SHELL_CACHE = `dd-shell-${VERSION}`;
 const RUNTIME_CACHE = `dd-runtime-${VERSION}`;
 
@@ -11,6 +11,7 @@ const SHELL_ASSETS = [
   "./manifest.webmanifest",
   "./lib/babylon.js",
   "./lib/babylonjs.loaders.min.js",
+  "./lib/qrcode.js",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/maskable-192.png",

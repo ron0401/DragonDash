@@ -43,6 +43,12 @@
   .btn-install:hover { box-shadow: 0 16px 38px rgba(60,120,255,.55); }
   .install-hint { margin-top: 12px; font-size: 12px; color: #9fb4d6; line-height: 1.7; }
   .install-hint b { color: #cfe0ff; font-size: 14px; }
+  /* secondary action row: share + greeting-card download */
+  .actions { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:12px; }
+  .btn-sec { margin-top:0; font-size:15px; padding:12px 22px; min-height:46px; background: linear-gradient(90deg,#16c47f,#0fa36b); box-shadow: 0 10px 24px rgba(20,180,120,.35); }
+  .btn-sec:hover { box-shadow: 0 16px 34px rgba(20,180,120,.5); }
+  .btn-card { background: linear-gradient(90deg,#ffb13a,#ff7a2f); box-shadow: 0 10px 24px rgba(255,140,40,.35); }
+  .btn-card:hover { box-shadow: 0 16px 34px rgba(255,140,40,.5); }
 
   .roster { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:10px; }
   .chip { font-size:10px; padding:3px 8px; border-radius:20px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12); color:#cfd6e2; }
@@ -104,6 +110,10 @@
     <p id="menuBest" style="color:#ffd27a">🏆 自己ベスト 0 m</p>
     <div class="keys">操作 : <b>スワイプした方向へ動き続けます</b>・指を戻すか離すと停止（マウスはドラッグ）</div>
     <button class="btn" id="startBtn">▶ スタート / タップで開始</button>
+    <div class="actions">
+      <button class="btn btn-sec" id="shareBtn">📤 アプリを共有</button>
+      <button class="btn btn-sec btn-card" id="cardBtn">🎴 カードを保存</button>
+    </div>
     <button class="btn btn-install hidden" id="installBtn">📲 アプリとしてインストール</button>
     <p class="install-hint hidden" id="iosInstallHint">📲 ホーム画面に追加：共有ボタン <b>􀈂</b> →「ホーム画面に追加」</p>
   </div>
@@ -117,11 +127,16 @@
     <p id="newRecord" class="hidden" style="color:#46ff8c;font-weight:800;font-size:15px">🎉 自己ベスト更新！</p>
     <p id="bestDist" style="color:#ffd27a">🏆 自己ベスト 0 m</p>
     <button class="btn" id="retryBtn">↻ もう一度</button>
+    <div class="actions">
+      <button class="btn btn-sec" id="shareBtn2">📤 アプリを共有</button>
+      <button class="btn btn-sec btn-card" id="cardBtn2">🎴 記録カードを保存</button>
+    </div>
   </div>
 </div>
 
 <script src="./lib/babylon.js"></script>
 <script src="./lib/babylonjs.loaders.min.js"></script>
+<script src="./lib/qrcode.js"></script>
 <script>
 /* ---- PWA: service worker registration + install prompt ---------------- */
 (function setupPWA() {
@@ -1002,6 +1017,191 @@ const tapStart = e => { e.preventDefault(); startGame(); };
 $('startScreen').addEventListener('pointerup', e => { if (phase === 'menu') tapStart(e); });
 $('overScreen').addEventListener('pointerup', e => { if (phase === 'over') tapStart(e); });
 $('startBtn').onclick = startGame; $('retryBtn').onclick = startGame;
+
+// ---------- share + greeting card ----------
+const SHARE_URL = 'https://ron0401.github.io/DragonDash/game/';
+const SHARE_TITLE = 'DRAGON DASH';
+const SHARE_TEXT = '🐉 DRAGON DASH — ドラゴンでトンネルを駆け抜けろ！いっしょに自己ベストを競おう！';
+
+// Lightweight toast that sits above the menu/over overlays (the in-game #toast
+// has a lower z-index and is hidden behind them).
+function notify(msg) {
+  let el = document.getElementById('ddNotify');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'ddNotify';
+    el.style.cssText = 'position:fixed;left:50%;bottom:34px;transform:translateX(-50%);z-index:40;' +
+      'background:rgba(16,20,33,.95);color:#fff;font:700 15px system-ui,-apple-system,sans-serif;' +
+      'padding:12px 22px;border-radius:14px;border:1px solid rgba(255,255,255,.15);' +
+      'box-shadow:0 10px 30px rgba(0,0,0,.5);pointer-events:none;opacity:0;transition:opacity .2s;' +
+      'max-width:90vw;text-align:center;';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.opacity = '0'; }, 2600);
+}
+
+// Share the app via the native share sheet (LINE / X / messaging apps on mobile),
+// falling back to copying the link on desktop browsers without Web Share.
+async function shareApp() {
+  if (navigator.share) {
+    try { await navigator.share({ title: SHARE_TITLE, text: SHARE_TEXT, url: SHARE_URL }); return; }
+    catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  try {
+    await navigator.clipboard.writeText(SHARE_TEXT + '\n' + SHARE_URL);
+    notify('🔗 共有リンクをコピーしました');
+  } catch (_) {
+    window.prompt('このリンクを共有してください', SHARE_URL);
+  }
+}
+
+function roundRectPath(ctx, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+function loadImage(src) {
+  return new Promise((res) => {
+    if (!src) return res(null);
+    const img = new Image();
+    img.onload = () => res(img);
+    img.onerror = () => res(null);
+    img.src = src;
+  });
+}
+// Grab the live 3D characters from the render canvas (preserveDrawingBuffer:true
+// keeps the last frame readable). On the menu this is the whole roster ring.
+function captureCharImage() {
+  try { scene.render(); return canvas.toDataURL('image/png'); }
+  catch (_) { return null; }
+}
+
+// Build the shareable greeting card: warm background, the game's characters,
+// the player's record, and a QR code linking to the app.
+async function buildGreetingCard(opts) {
+  opts = opts || {};
+  const W = 1080, H = 1440;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  ctx.textAlign = 'center';
+
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#1c0b24'); bg.addColorStop(0.45, '#3c1020'); bg.addColorStop(1, '#100711');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  const glow = ctx.createRadialGradient(W / 2, 470, 60, W / 2, 470, 780);
+  glow.addColorStop(0, 'rgba(255,140,50,0.42)'); glow.addColorStop(1, 'rgba(255,140,50,0)');
+  ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+
+  const tg = ctx.createLinearGradient(0, 70, 0, 185);
+  tg.addColorStop(0, '#ffe24a'); tg.addColorStop(0.5, '#ff8a2f'); tg.addColorStop(1, '#ff3d5d');
+  ctx.fillStyle = tg;
+  ctx.font = '900 90px system-ui,-apple-system,"Segoe UI",sans-serif';
+  ctx.fillText('🐉 DRAGON DASH', W / 2, 150);
+  ctx.fillStyle = '#ffd9a8';
+  ctx.font = '700 33px system-ui,sans-serif';
+  ctx.fillText('ドラゴンでトンネルを駆け抜けろ！', W / 2, 208);
+
+  // character frame
+  const fx = 90, fy = 255, fw = W - 180, fh = 615;
+  ctx.save();
+  roundRectPath(ctx, fx, fy, fw, fh, 36);
+  ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fill();
+  ctx.clip();
+  let charImg = await loadImage(captureCharImage());
+  if (!charImg || !charImg.width) charImg = await loadImage('./icons/icon-512.png');
+  if (charImg && charImg.width) {
+    const s = Math.max(fw / charImg.width, fh / charImg.height);
+    const dw = charImg.width * s, dh = charImg.height * s;
+    ctx.drawImage(charImg, fx + (fw - dw) / 2, fy + (fh - dh) / 2, dw, dh);
+  }
+  ctx.restore();
+  roundRectPath(ctx, fx, fy, fw, fh, 36);
+  ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,180,90,0.55)'; ctx.stroke();
+
+  // record / message
+  ctx.fillStyle = '#ffd27a';
+  ctx.font = '800 40px system-ui,sans-serif';
+  let recLine;
+  if (opts.distance != null) recLine = '🏆 とうたつ距離 ' + Math.floor(opts.distance).toLocaleString() + ' m';
+  else { const b = getBest(); recLine = b > 0 ? ('🏆 自己ベスト ' + b.toLocaleString() + ' m') : '🎮 さあ、いっしょに遊ぼう！'; }
+  ctx.fillText(recLine, W / 2, fy + fh + 72);
+
+  // QR panel
+  const pw = W - 160, ph = 300, px = 80, py = H - ph - 70;
+  roundRectPath(ctx, px, py, pw, ph, 30);
+  ctx.fillStyle = '#ffffff'; ctx.fill();
+  const qrSize = 250, qrX = px + 30, qrY = py + (ph - qrSize) / 2;
+  const qr = qrcode(0, 'M');
+  qr.addData(SHARE_URL);
+  qr.make();
+  qr.renderToCanvas(ctx, qrX, qrY, qrSize, { dark: '#10121a', light: '#ffffff', margin: 2 });
+
+  const tx = qrX + qrSize + 40;
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#16181f';
+  ctx.font = '900 46px system-ui,sans-serif';
+  ctx.fillText('スマホで', tx, py + 112);
+  ctx.fillText('今すぐプレイ', tx, py + 170);
+  ctx.fillStyle = '#5b6170';
+  ctx.font = '600 22px system-ui,sans-serif';
+  ctx.fillText('カメラでQRを読み取ってね 📷', tx, py + 220);
+  ctx.textAlign = 'center';
+  return cv;
+}
+
+let cardBusy = false;
+// Generate the card and hand it off: on mobile use the share sheet so the user
+// can save it to Photos or send it via LINE; on desktop download a PNG.
+async function saveOrShareCard(opts) {
+  if (cardBusy) return;
+  cardBusy = true;
+  notify('🎴 カードを作成中…');
+  try {
+    const cv = await buildGreetingCard(opts);
+    const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
+    if (!blob) throw new Error('toBlob failed');
+
+    try {
+      const file = new File([blob], 'dragon-dash-card.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: SHARE_TITLE, text: SHARE_TEXT });
+        cardBusy = false; return;
+      }
+    } catch (e) { if (e && e.name === 'AbortError') { cardBusy = false; return; } }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'dragon-dash-card.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    notify('🎴 カードを保存しました');
+  } catch (e) {
+    console.warn('greeting card error', e);
+    notify('⚠️ カードの作成に失敗しました');
+  }
+  cardBusy = false;
+}
+
+// Wire up buttons. stopPropagation keeps taps from also triggering the
+// overlay's tap-to-start handler.
+function bindAction(id, fn) {
+  const el = $(id);
+  if (!el) return;
+  el.addEventListener('pointerup', e => e.stopPropagation());
+  el.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); fn(); });
+}
+bindAction('shareBtn', shareApp);
+bindAction('shareBtn2', shareApp);
+bindAction('cardBtn', () => saveOrShareCard({}));
+bindAction('cardBtn2', () => saveOrShareCard({ distance: distance }));
 
 // ---------- boot ----------
 quickPlay = location.hash.indexOf('play') >= 0;
