@@ -141,9 +141,6 @@
     <button class="btn" id="retryBtn">↻ もう一度</button>
     <div class="actions">
       <button class="btn btn-sec" id="shareBtn2">📤 アプリを共有</button>
-      <button class="btn btn-sec btn-card" id="cardBtn2">🎴 記録カードを保存</button>
-    </div>
-    <div class="actions">
       <button class="btn btn-sec btn-score" id="scoreImgBtn">🖼️ スコア画像をダウンロード</button>
     </div>
   </div>
@@ -1378,7 +1375,6 @@ function bindAction(id, fn) {
 bindAction('shareBtn', shareApp);
 bindAction('shareBtn2', shareApp);
 bindAction('cardBtn', () => saveOrShareCard({}));
-bindAction('cardBtn2', () => saveOrShareCard({ distance: distance }));
 bindAction('scoreImgBtn', () => downloadScoreImage());
 
 // ---------- boot ----------
