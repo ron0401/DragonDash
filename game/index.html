@@ -92,7 +92,7 @@
     <p class="drag-hint">🖐️ モデルをドラッグでグリグリ ・ ピンチでズーム</p>
     <div class="roster" id="roster"></div>
     <p id="menuBest" style="color:#ffd27a">🏆 自己ベスト 0 m</p>
-    <div class="keys">操作 : 画面を<b>スワイプ</b>して移動（マウスはドラッグ）</div>
+    <div class="keys">操作 : <b>スワイプした方向へ動き続けます</b>・指を戻すか離すと停止（マウスはドラッグ）</div>
     <button class="btn" id="startBtn">▶ スタート / タップで開始</button>
   </div>
 </div>
@@ -152,6 +152,8 @@ let nextHealAt = 600;
 let target = { x: 0, y: Y_CENTER };
 const keys = {};
 let pointerDown = false;
+let anchorX = 0, anchorY = 0;    // where the current swipe began (screen px)
+let dragVX = 0, dragVY = 0;      // swipe-joystick steering velocity (lane units/s)
 const $ = id => document.getElementById(id);
 
 // ---------- scene ----------
@@ -517,6 +519,7 @@ function resetGame() {
   lives = 3; distance = 0; speed = BASE_SPEED; invuln = 0; shake = 0; camRoll = 0; dodgeCombo = 0; comboTimer = 0;
   nextHealAt = 500 + Math.random()*400;
   target = { x: 0, y: Y_CENTER };
+  pointerDown = false; dragVX = dragVY = 0;
   dragonRoot.position.set(0, Y_CENTER, 0);
   dragonBank.rotation.set(0,0,0);
   obstacles.forEach((m, i) => placeObstacle(m, 40 + (i / NUM_OBSTACLES) * SPAWN_AHEAD));
@@ -608,6 +611,9 @@ function update(dt) {
   if (keys['arrowright']|| keys['d']) target.x += mv*dt;
   if (keys['arrowup']   || keys['w']) target.y += mv*dt;
   if (keys['arrowdown'] || keys['s']) target.y -= mv*dt;
+  // swipe joystick: keep gliding in the held direction until released / re-centered
+  target.x += dragVX * dt;
+  target.y += dragVY * dt;
   target.x = Math.max(-LANE_W, Math.min(LANE_W, target.x));
   target.y = Math.max(Y_CENTER-LANE_H, Math.min(Y_CENTER+LANE_H, target.y));
 
@@ -770,27 +776,33 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 
-// tap & swipe (touch) / click & drag (mouse): drag anywhere to steer relatively
-const SWIPE_SENS = 2.6;   // a full-screen swipe ≈ this many lane-widths of travel
-let lastPX = 0, lastPY = 0;
-function clampTarget() {
-  target.x = Math.max(-LANE_W, Math.min(LANE_W, target.x));
-  target.y = Math.max(Y_CENTER-LANE_H, Math.min(Y_CENTER+LANE_H, target.y));
+// swipe = virtual joystick: the finger's offset from where you first touched
+// sets a continuous direction & speed. The dragon keeps moving that way until
+// you bring your finger back toward the start (戻す) or lift it (離す).
+const DRAG_MAX_SPEED   = 26;     // lane units / second at full stick deflection
+const DRAG_FULL_OFFSET = 0.18;   // screen fraction of offset that = full speed
+const DRAG_DEADZONE    = 0.015;  // ignore tiny jitter near the anchor
+function axisVel(off) {
+  let m = Math.abs(off) - DRAG_DEADZONE;
+  if (m <= 0) return 0;
+  m = Math.min(1, m / (DRAG_FULL_OFFSET - DRAG_DEADZONE));
+  return Math.sign(off) * m * DRAG_MAX_SPEED;
+}
+function updateDragVel(curX, curY) {
+  const r = canvas.getBoundingClientRect();
+  dragVX =  axisVel((curX - anchorX) / r.width);
+  dragVY = -axisVel((curY - anchorY) / r.height);   // screen-down → world-down
 }
 canvas.addEventListener('pointerdown', e => {
-  pointerDown = true; lastPX = e.clientX; lastPY = e.clientY;
+  pointerDown = true; anchorX = e.clientX; anchorY = e.clientY;
+  dragVX = dragVY = 0;
   if (canvas.setPointerCapture) { try { canvas.setPointerCapture(e.pointerId); } catch (_) {} }
 });
 canvas.addEventListener('pointermove', e => {
   if (!pointerDown || phase !== 'playing') return;
-  const r = canvas.getBoundingClientRect();
-  const dx = e.clientX - lastPX, dy = e.clientY - lastPY;
-  lastPX = e.clientX; lastPY = e.clientY;
-  target.x += (dx / r.width)  * LANE_W * SWIPE_SENS;
-  target.y -= (dy / r.height) * LANE_H * SWIPE_SENS;
-  clampTarget();
+  updateDragVel(e.clientX, e.clientY);
 });
-const endPointer = () => { pointerDown = false; };
+const endPointer = () => { pointerDown = false; dragVX = dragVY = 0; };
 addEventListener('pointerup', endPointer);
 addEventListener('pointercancel', endPointer);
 // block long-press context menu / iOS callout so dragging feels native
