@@ -25,6 +25,12 @@
         background: radial-gradient(ellipse at 50% 50%, transparent 42%, rgba(255,20,20,.5) 100%); }
   #healfx { position: fixed; inset: 0; z-index: 11; pointer-events: none; opacity: 0; transition: opacity .25s;
         background: radial-gradient(ellipse at 50% 50%, transparent 45%, rgba(40,255,120,.4) 100%); }
+  #bestfx { position: fixed; inset: 0; z-index: 12; pointer-events: none; opacity: 0; transition: opacity .35s;
+        background: radial-gradient(ellipse at 50% 45%, rgba(255,215,90,.45) 0%, rgba(255,170,50,.18) 35%, transparent 65%); }
+  .confetti-piece { position: fixed; top: -8vh; z-index: 30; pointer-events: none; will-change: transform, opacity;
+        animation: confettiFall linear forwards; }
+  @keyframes confettiFall { 0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+        100% { transform: translateY(118vh) rotate(720deg); opacity: .85; } }
 
   .overlay { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; background: radial-gradient(circle at 50% 38%, rgba(22,30,52,.5), rgba(3,5,11,.92)); backdrop-filter: blur(4px); }
   .overlay.hidden { display: none; }
@@ -49,6 +55,8 @@
   .btn-sec:hover { box-shadow: 0 16px 34px rgba(20,180,120,.5); }
   .btn-card { background: linear-gradient(90deg,#ffb13a,#ff7a2f); box-shadow: 0 10px 24px rgba(255,140,40,.35); }
   .btn-card:hover { box-shadow: 0 16px 34px rgba(255,140,40,.5); }
+  .btn-score { background: linear-gradient(90deg,#7a5cff,#2f9bff); box-shadow: 0 10px 24px rgba(80,120,255,.35); }
+  .btn-score:hover { box-shadow: 0 16px 34px rgba(80,120,255,.5); }
 
   .roster { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:10px; }
   .chip { font-size:10px; padding:3px 8px; border-radius:20px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12); color:#cfd6e2; }
@@ -59,6 +67,9 @@
   .hud-box { background: rgba(8,12,22,.5); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 8px 14px; backdrop-filter: blur(6px); }
   #dist { font-size: 11px; color: #9aa6b6; letter-spacing:.1em; }
   #dist b { font-size: clamp(22px, 6vw, 30px); color: #fff; font-weight: 900; display: block; line-height: 1.05; text-shadow:0 0 14px rgba(120,180,255,.5); }
+  #bestPct { display: none; font-size: 11px; font-weight: 800; font-style: normal; color: #ffd27a; letter-spacing: .06em; margin-top: 3px; }
+  #bestPct.show { display: block; }
+  #bestPct.over { color: #46ff8c; text-shadow: 0 0 12px rgba(70,255,140,.7); }
   #lives { font-size: clamp(20px, 5.5vw, 26px); letter-spacing: 3px; }
   #speed { font-size: 13px; font-weight:800; color: #ffb070; margin-top: 5px; text-align: right; letter-spacing:.06em; transition: color .2s; }
   #speed.boost { color:#ff4d6d; text-shadow:0 0 12px rgba(255,77,109,.8); }
@@ -81,9 +92,10 @@
 <div id="fx"></div>
 <div id="hitfx"></div>
 <div id="healfx"></div>
+<div id="bestfx"></div>
 
 <div id="hud" class="hidden">
-  <div class="hud-box" id="dist">DISTANCE<b>0 m</b></div>
+  <div class="hud-box" id="dist">DISTANCE<b>0 m</b><i id="bestPct"></i></div>
   <div class="hud-box" style="text-align:right">
     <div id="lives">❤️❤️❤️</div>
     <div id="speed">SPEED 1.0x</div>
@@ -130,6 +142,9 @@
     <div class="actions">
       <button class="btn btn-sec" id="shareBtn2">📤 アプリを共有</button>
       <button class="btn btn-sec btn-card" id="cardBtn2">🎴 記録カードを保存</button>
+    </div>
+    <div class="actions">
+      <button class="btn btn-sec btn-score" id="scoreImgBtn">🖼️ スコア画像をダウンロード</button>
     </div>
   </div>
 </div>
@@ -253,6 +268,7 @@ let dragonReady = false;
 let quickPlay = false;
 let lives = 3, distance = 0, speed = BASE_SPEED, invuln = 0, shake = 0, camRoll = 0, dodgeCombo = 0, comboTimer = 0;
 let nextHealAt = 600;
+let runStartBest = 0, beatBestFired = false;   // best at the start of this run + whether we've celebrated beating it
 let target = { x: 0, y: Y_CENTER };
 const keys = {};
 let pointerDown = false;
@@ -715,6 +731,7 @@ function leaveMenu() {
 function resetGame() {
   lives = 3; distance = 0; speed = BASE_SPEED; invuln = 0; shake = 0; camRoll = 0; dodgeCombo = 0; comboTimer = 0;
   nextHealAt = 500 + Math.random()*400;
+  runStartBest = getBest(); beatBestFired = false;   // remember the bar to beat + reset the celebration latch
   target = { x: 0, y: Y_CENTER };
   pointerDown = false; dragVX = dragVY = 0;
   dragonRoot.position.set(0, Y_CENTER, 0);
@@ -739,13 +756,24 @@ function gameOver() {
   $('finalDist').textContent = d.toLocaleString() + ' m';
   const prevBest = getBest();
   const isNew = d > prevBest && d > 0;
-  if (isNew) saveBest(d);
+  if (isNew) { saveBest(d); launchConfetti(72); }
   $('newRecord').classList.toggle('hidden', !isNew);
   $('bestDist').textContent = '🏆 自己ベスト ' + getBest().toLocaleString() + ' m';
   $('overScreen').classList.remove('hidden');
 }
 function updateHud() {
-  $('dist').innerHTML = 'DISTANCE<b>' + Math.floor(distance).toLocaleString() + ' m</b>';
+  $('dist').innerHTML = 'DISTANCE<b>' + Math.floor(distance).toLocaleString() + ' m</b><i id="bestPct"></i>';
+  // show how far we are vs. the best (only when a best exists)
+  const bp = $('bestPct');
+  if (bp) {
+    if (runStartBest > 0) {
+      const pct = Math.floor(distance / runStartBest * 100);
+      bp.textContent = (pct >= 100 ? '🏆 自己ベスト ' : '🎯 自己ベストの ') + pct + '%';
+      bp.className = 'show' + (pct >= 100 ? ' over' : '');
+    } else {
+      bp.className = '';
+    }
+  }
   $('lives').textContent = '❤️'.repeat(Math.max(0,lives)) + '🖤'.repeat(Math.max(0,3 - lives));
   const mult = speed / BASE_SPEED; const sp = $('speed');
   sp.textContent = 'SPEED ' + mult.toFixed(1) + 'x'; sp.classList.toggle('boost', mult > 2.2);
@@ -763,6 +791,31 @@ function showCombo() {
   if (dodgeCombo < 5 || dodgeCombo % 5 !== 0) return;
   const el = $('combo'); el.textContent = '🔥 ' + dodgeCombo + ' COMBO';
   el.style.opacity = 1; clearTimeout(el._t); el._t = setTimeout(() => el.style.opacity = 0, 800);
+}
+// Rain a burst of celebratory emoji down the screen, then clean them up.
+function launchConfetti(n) {
+  const pieces = ['🎉','✨','🎊','⭐','🏆','🐉'];
+  for (let i = 0; i < n; i++) {
+    const s = document.createElement('div');
+    s.className = 'confetti-piece';
+    s.textContent = pieces[Math.floor(Math.random() * pieces.length)];
+    s.style.left = (Math.random() * 100) + 'vw';
+    s.style.fontSize = (16 + Math.random() * 26) + 'px';
+    const dur = 2.4 + Math.random() * 1.8;
+    s.style.animationDuration = dur + 's';
+    s.style.animationDelay = (Math.random() * 0.5) + 's';
+    document.body.appendChild(s);
+    setTimeout(() => s.remove(), (dur + 0.7) * 1000);
+  }
+}
+// Fired the instant the player overtakes their previous best, mid-run.
+function celebrateNewBest() {
+  if (sparkBurst) sparkBurst.manualEmitCount = 520;
+  if (pipeline) pipeline.chromaticAberration.aberrationAmount = 35;
+  flashToast('🎉 自己ベスト更新！', '#ffd24a');
+  flashCombo('🏆 NEW RECORD!');
+  launchConfetti(64);
+  const f = $('bestfx'); f.style.opacity = 1; setTimeout(() => f.style.opacity = 0, 600);
 }
 function hit() {
   lives--; invuln = INVULN_TIME; shake = 0.9; dodgeCombo = 0;
@@ -807,6 +860,8 @@ function update(dt) {
 
   speed = Math.min(MAX_SPEED, BASE_SPEED + (distance / 100) * BASE_SPEED * 0.16);
   distance += speed * dt;
+  // the moment we pass the previous best, throw a celebration (once per run)
+  if (!beatBestFired && runStartBest > 0 && distance > runStartBest) { beatBestFired = true; celebrateNewBest(); }
   applyStage(stageForDistance(distance), true);   // advance 1st→2nd→3rd by distance
   const dragZ = distance, boost = speed / BASE_SPEED;
 
@@ -1208,6 +1263,110 @@ async function saveOrShareCard(opts) {
   cardBusy = false;
 }
 
+// Build a clean "score" image (square, good for sharing your run): GAME OVER
+// header, the reached distance front-and-center, the best, a NEW RECORD badge,
+// and a snapshot of the characters.
+async function buildScoreImage(opts) {
+  opts = opts || {};
+  const dist = Math.floor(opts.distance != null ? opts.distance : distance);
+  const best = getBest();
+  const isNew = !!opts.isNew;
+  const W = 1080, H = 1080;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  ctx.textAlign = 'center';
+
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#0c1326'); bg.addColorStop(0.5, '#241033'); bg.addColorStop(1, '#100711');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  const glow = ctx.createRadialGradient(W / 2, 540, 60, W / 2, 540, 760);
+  glow.addColorStop(0, 'rgba(255,140,50,0.30)'); glow.addColorStop(1, 'rgba(255,140,50,0)');
+  ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+
+  // character snapshot
+  const fx = 90, fy = 250, fw = W - 180, fh = 470;
+  ctx.save();
+  roundRectPath(ctx, fx, fy, fw, fh, 34);
+  ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fill();
+  ctx.clip();
+  let charImg = await loadImage(captureCharImage());
+  if (!charImg || !charImg.width) charImg = await loadImage('./icons/icon-512.png');
+  if (charImg && charImg.width) {
+    const s = Math.max(fw / charImg.width, fh / charImg.height);
+    const dw = charImg.width * s, dh = charImg.height * s;
+    ctx.drawImage(charImg, fx + (fw - dw) / 2, fy + (fh - dh) / 2, dw, dh);
+  }
+  ctx.restore();
+  roundRectPath(ctx, fx, fy, fw, fh, 34);
+  ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,180,90,0.55)'; ctx.stroke();
+
+  // header
+  ctx.fillStyle = '#ff7a5a';
+  ctx.font = '900 78px system-ui,-apple-system,"Segoe UI",sans-serif';
+  ctx.fillText('🐉 GAME OVER', W / 2, 130);
+  ctx.fillStyle = '#9aa6b6';
+  ctx.font = '700 32px system-ui,sans-serif';
+  ctx.fillText('とうたつ距離', W / 2, 195);
+
+  // big distance number
+  const dg = ctx.createLinearGradient(0, fy + fh + 30, 0, fy + fh + 150);
+  dg.addColorStop(0, '#ffe24a'); dg.addColorStop(0.5, '#ff8a2f'); dg.addColorStop(1, '#ff3d5d');
+  ctx.fillStyle = dg;
+  ctx.font = '900 128px system-ui,sans-serif';
+  ctx.fillText(dist.toLocaleString() + ' m', W / 2, fy + fh + 130);
+
+  // new record badge / best line
+  let y = fy + fh + 200;
+  if (isNew) {
+    ctx.fillStyle = '#46ff8c';
+    ctx.font = '800 44px system-ui,sans-serif';
+    ctx.fillText('🎉 自己ベスト更新！', W / 2, y);
+    y += 64;
+  }
+  ctx.fillStyle = '#ffd27a';
+  ctx.font = '800 40px system-ui,sans-serif';
+  ctx.fillText('🏆 自己ベスト ' + best.toLocaleString() + ' m', W / 2, y);
+
+  ctx.fillStyle = '#7c8699';
+  ctx.font = '600 26px system-ui,sans-serif';
+  ctx.fillText('DRAGON DASH', W / 2, H - 36);
+  return cv;
+}
+
+let scoreBusy = false;
+// Download the score as a PNG. Tries the share sheet first on mobile (so it can
+// land in Photos / LINE), then always falls back to a real file download.
+async function downloadScoreImage() {
+  if (scoreBusy) return;
+  scoreBusy = true;
+  notify('🖼️ スコア画像を作成中…');
+  try {
+    const cv = await buildScoreImage({ distance: distance, isNew: !$('newRecord').classList.contains('hidden') });
+    const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
+    if (!blob) throw new Error('toBlob failed');
+    const fname = 'dragon-dash-score-' + Math.floor(distance) + 'm.png';
+
+    try {
+      const file = new File([blob], fname, { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: SHARE_TITLE, text: SHARE_TEXT });
+        scoreBusy = false; return;
+      }
+    } catch (e) { if (e && e.name === 'AbortError') { scoreBusy = false; return; } }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = fname;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    notify('🖼️ スコア画像を保存しました');
+  } catch (e) {
+    console.warn('score image error', e);
+    notify('⚠️ 画像の作成に失敗しました');
+  }
+  scoreBusy = false;
+}
+
 // Wire up buttons. stopPropagation keeps taps from also triggering the
 // overlay's tap-to-start handler.
 function bindAction(id, fn) {
@@ -1220,6 +1379,7 @@ bindAction('shareBtn', shareApp);
 bindAction('shareBtn2', shareApp);
 bindAction('cardBtn', () => saveOrShareCard({}));
 bindAction('cardBtn2', () => saveOrShareCard({ distance: distance }));
+bindAction('scoreImgBtn', () => downloadScoreImage());
 
 // ---------- boot ----------
 quickPlay = location.hash.indexOf('play') >= 0;
