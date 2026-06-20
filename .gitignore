@@ -1,0 +1,14 @@
+# 3Dモデル生成部分・生成物はバージョン管理しない（ゲーム部分のみ管理）
+# ルート直下はすべて無視し、ゲーム関連だけを許可する
+/*
+!/.gitignore
+!/README.md
+!/game/
+
+# ゲーム実行時に生成・更新されるデータ
+game/scores.json
+game/scores.json.tmp
+
+# OS / エディタ
+.DS_Store
+*.swp

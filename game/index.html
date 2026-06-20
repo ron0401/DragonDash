@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>🐉 DRAGON DASH — LEGO Dragon Runner</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #04050a; font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", sans-serif; color:#fff; }
+  #renderCanvas { width: 100%; height: 100%; display: block; touch-action: none; outline: none; }
+
+  #fx { position: fixed; inset: 0; z-index: 10; pointer-events: none; opacity: 0; transition: opacity .15s;
+        background: radial-gradient(ellipse 75% 65% at 50% 50%, transparent 60%, rgba(255,120,40,.08) 82%, rgba(255,60,20,.20) 100%); }
+  #hitfx { position: fixed; inset: 0; z-index: 11; pointer-events: none; opacity: 0; transition: opacity .25s;
+        background: radial-gradient(ellipse at 50% 50%, transparent 42%, rgba(255,20,20,.5) 100%); }
+  #healfx { position: fixed; inset: 0; z-index: 11; pointer-events: none; opacity: 0; transition: opacity .25s;
+        background: radial-gradient(ellipse at 50% 50%, transparent 45%, rgba(40,255,120,.4) 100%); }
+
+  .overlay { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; background: radial-gradient(circle at 50% 38%, rgba(22,30,52,.5), rgba(3,5,11,.92)); backdrop-filter: blur(4px); }
+  .overlay.hidden { display: none; }
+  .panel { background: rgba(14,19,33,.82); border: 1px solid rgba(255,255,255,.1); border-radius: 20px; padding: 30px 40px; max-width: 92vw; max-height: 92vh; overflow:auto; box-shadow: 0 30px 80px rgba(0,0,0,.5); }
+  .panel h1 { font-size: 38px; font-weight: 900; letter-spacing: .03em; margin-bottom: 6px; background: linear-gradient(90deg,#ffd23a,#ff7a2f,#ff3d5d); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 16px rgba(255,90,40,.5)); animation: glow 2.4s ease-in-out infinite; }
+  @keyframes glow { 0%,100%{filter:drop-shadow(0 0 12px rgba(255,90,40,.4))} 50%{filter:drop-shadow(0 0 24px rgba(255,140,40,.8))} }
+  .panel h2 { font-size: 28px; margin-bottom: 8px; color: #ff7a5a; letter-spacing:.08em; }
+  .panel p { font-size: 13px; color: #b9c2d2; line-height: 1.8; margin: 5px 0; }
+  .panel .big { font-size: 46px; font-weight: 900; color: #fff; margin: 6px 0; text-shadow: 0 0 22px rgba(255,120,40,.55); }
+  .keys { margin-top: 12px; font-size: 12px; color: #8d97a8; }
+  kbd { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18); border-radius: 6px; padding: 2px 7px; font-family: ui-monospace, monospace; font-size: 11px; }
+  .btn { margin-top: 18px; font: inherit; font-size: 17px; font-weight: 800; color: #fff; cursor: pointer; background: linear-gradient(90deg,#ff8a33,#ff2f5d); border: none; border-radius: 13px; padding: 13px 40px; box-shadow: 0 10px 28px rgba(255,60,80,.4); transition: transform .12s, box-shadow .12s; letter-spacing:.05em; }
+  .btn:hover { transform: translateY(-2px) scale(1.03); box-shadow: 0 16px 38px rgba(255,60,80,.55); }
+  .btn:active { transform: translateY(0); }
+
+  .roster { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:10px; }
+  .chip { font-size:10px; padding:3px 8px; border-radius:20px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12); color:#cfd6e2; }
+
+  .rank { margin: 14px auto 4px; width: min(360px, 80vw); text-align:left; }
+  .rank h3 { font-size:13px; color:#8fa0c0; letter-spacing:.12em; margin-bottom:6px; text-align:center; }
+  .rank ol { list-style:none; counter-reset:r; }
+  .rank li { counter-increment:r; display:flex; justify-content:space-between; align-items:center; padding:4px 10px; border-radius:8px; font-size:13px; }
+  .rank li:nth-child(odd){ background:rgba(255,255,255,.04); }
+  .rank li.me { background:linear-gradient(90deg,rgba(255,140,40,.3),rgba(255,60,90,.25)); box-shadow:0 0 0 1px rgba(255,150,60,.4) inset; }
+  .rank li .pos { width:26px; color:#ffd27a; font-weight:800; }
+  .rank li .pos::before { content:counter(r); }
+  .rank li .nm { flex:1; padding:0 8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rank li .ds { color:#fff; font-weight:700; font-variant-numeric:tabular-nums; }
+  .rank .empty { text-align:center; color:#6b7689; font-size:12px; padding:8px; }
+
+  .nameEntry { margin-top:14px; }
+  .nameEntry input { font:inherit; font-size:16px; text-align:center; padding:10px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.08); color:#fff; width:min(260px,70vw); }
+  .nameEntry input:focus { outline:none; border-color:#ff8a3a; }
+
+  #hud { position: fixed; top: 0; left: 0; right: 0; z-index: 15; display: flex; justify-content: space-between; align-items: flex-start; padding: 16px 20px; pointer-events: none; }
+  #hud.hidden { display: none; }
+  .hud-box { background: rgba(8,12,22,.5); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 9px 16px; backdrop-filter: blur(6px); }
+  #dist { font-size: 12px; color: #9aa6b6; letter-spacing:.1em; }
+  #dist b { font-size: 30px; color: #fff; font-weight: 900; display: block; line-height: 1.05; text-shadow:0 0 14px rgba(120,180,255,.5); }
+  #lives { font-size: 26px; letter-spacing: 3px; }
+  #speed { font-size: 13px; font-weight:800; color: #ffb070; margin-top: 5px; text-align: right; letter-spacing:.06em; transition: color .2s; }
+  #speed.boost { color:#ff4d6d; text-shadow:0 0 12px rgba(255,77,109,.8); }
+  #combo { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index:15; color:#ffd27a; font-size:15px; font-weight:800; opacity:0; transition:opacity .3s; pointer-events:none; letter-spacing:.1em;}
+  #toast { position: fixed; top: 46%; left: 50%; transform: translate(-50%,-50%) scale(.6); z-index: 16; font-size: 38px; font-weight: 900; text-shadow: 0 4px 20px rgba(0,0,0,.6); opacity: 0; transition: opacity .15s, transform .15s; pointer-events: none; white-space:nowrap; }
+  /* menu (start screen) shown over the live 3D showcase */
+  #startScreen.menu { background: linear-gradient(to top, rgba(3,5,11,.8), rgba(3,5,11,.15) 32%, transparent 58%); backdrop-filter: none; pointer-events: none; justify-content: flex-end; padding-bottom: 24px; }
+  #startScreen.menu .panel { pointer-events: auto; padding: 16px 30px 20px; max-width: min(720px, 95vw); overflow: visible; }
+  #startScreen.menu .panel h1 { font-size: 30px; margin-bottom: 2px; }
+  #startScreen.menu .panel p { margin: 3px 0; }
+  .drag-hint { font-size: 13px; color: #9fe0ff; margin-top: 6px; }
+  #menuRankBox { position: fixed; top: 14px; right: 14px; z-index: 18; width: min(270px, 44vw); background: rgba(12,17,30,.7); border: 1px solid rgba(255,255,255,.1); border-radius: 14px; padding: 10px 14px 12px; pointer-events: auto; backdrop-filter: blur(6px); }
+  #menuRankBox.hidden { display: none; }
+  #menuRankBox .rank { width: auto; margin: 0; }
+  .spinner { width:56px; height:56px; margin:0 auto; border-radius:50%; border:5px solid rgba(255,255,255,.15); border-top-color:#ff7a33; border-right-color:#ff3d5d; animation:spin .85s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loadingScreen .bar { width:min(280px,70vw); height:8px; margin:16px auto 0; border-radius:6px; background:rgba(255,255,255,.1); overflow:hidden; }
+  #loadingScreen .bar > i { display:block; height:100%; width:0%; background:linear-gradient(90deg,#ff8a33,#ff3d5d); transition:width .25s; }
+</style>
+</head>
+<body>
+<canvas id="renderCanvas"></canvas>
+<div id="fx"></div>
+<div id="hitfx"></div>
+<div id="healfx"></div>
+
+<div id="hud" class="hidden">
+  <div class="hud-box" id="dist">DISTANCE<b>0 m</b></div>
+  <div class="hud-box" style="text-align:right">
+    <div id="lives">❤️❤️❤️</div>
+    <div id="speed">SPEED 1.0x</div>
+  </div>
+</div>
+<div id="combo"></div>
+<div id="toast"></div>
+
+<div id="loadingScreen" class="overlay">
+  <div class="panel" style="background:transparent;border:none;box-shadow:none">
+    <div class="spinner"></div>
+    <h2 style="color:#ffb070;margin-top:20px">🐉 LOADING…</h2>
+    <p id="loadingPct" style="color:#cfd6e2">ドラゴンと仲間たちを読み込み中… 0%</p>
+    <div class="bar"><i id="loadingBar"></i></div>
+  </div>
+</div>
+
+<div id="menuRankBox" class="hidden">
+  <div class="rank"><h3>🏆 GLOBAL RANKING</h3><ol id="menuRankList"></ol></div>
+</div>
+
+<div id="startScreen" class="overlay menu hidden">
+  <div class="panel">
+    <h1>🐉 DRAGON DASH</h1>
+    <p style="color:#ff9a6a">敵に3回ぶつかるとゲームオーバー。緑の💚で体力回復！</p>
+    <p class="drag-hint">🖱️ ドラッグでモデルをグリグリ回せます ・ ホイールでズーム</p>
+    <div class="roster" id="roster"></div>
+    <div class="keys">移動 : <kbd>← ↑ ↓ →</kbd> / <kbd>W A S D</kbd> / ドラッグ</div>
+    <button class="btn" id="startBtn">▶ スタート</button>
+  </div>
+</div>
+
+<div id="overScreen" class="overlay hidden">
+  <div class="panel">
+    <h2>GAME OVER</h2>
+    <p>とうたつ距離</p>
+    <div class="big" id="finalDist">0 m</div>
+    <div class="nameEntry hidden" id="nameEntry">
+      <p style="color:#ffd27a">🎉 TOP10入り！名前を登録しよう</p>
+      <input id="nameInput" maxlength="12" placeholder="なまえ (12文字まで)" />
+      <button class="btn" id="submitBtn" style="margin-top:10px;padding:10px 28px;font-size:15px">登録する</button>
+    </div>
+    <div class="rank" id="overRank"><h3>🏆 GLOBAL RANKING</h3><ol id="overRankList"></ol></div>
+    <button class="btn" id="retryBtn">↻ もう一度</button>
+  </div>
+</div>
+
+<script src="./lib/babylon.js"></script>
+<script src="./lib/babylonjs.loaders.min.js"></script>
+<script>
+const canvas = document.getElementById('renderCanvas');
+const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true, antialias: true });
+engine.setHardwareScalingLevel(1 / Math.min(window.devicePixelRatio || 1, 2));
+
+// ---------- config ----------
+const LANE_W = 15, LANE_H = 9, Y_CENTER = 7;     // wider play area
+const SPAWN_AHEAD = 120, RECYCLE_BEHIND = 16, NUM_OBSTACLES = 26;
+const BASE_SPEED = 30, MAX_SPEED = BASE_SPEED * 3.4;
+const HIT_Z = 1.8, HIT_R = 1.9, INVULN_TIME = 1.5;
+const DRAGON_YAW = -Math.PI / 2;     // facing (yaw 90° right). flip sign if it faces backwards.
+const ROLL_SIGN = -1, PITCH_SIGN = -1; // banking direction. flip a sign if that axis feels reversed.
+const DRAGON_BRIGHT = 0.42, ENEMY_BRIGHT = 0.42;
+const INTRO_DUR = 3.8;
+
+const ENEMIES = [
+  { file:'tarantula_dragon.glb', name:'タランチュラドラゴン' },
+  { file:'kira.glb',            name:'キーラ' },
+  { file:'hero_main.glb',       name:'主人公' },
+  { file:'brave.glb',           name:'勇者' },
+  { file:'golem.glb',           name:'岩のゴーレム' },
+  { file:'evil_spirit.glb',     name:'悪い精霊' },
+];
+
+// ---------- state ----------
+let scene, camera, showcaseCam, pipeline, dragonRoot, dragonBank, dragonFacing, dragonGlow, fireTrail, sparkBurst;
+let obstacles = [], heals = [], gates = [], streaks = [];
+let templates = [];
+let dragonModelRoot = null;
+let showcaseRoot = null, showcaseItems = [], showcaseBuilt = false;
+const SHOWCASE_CENTER = () => new BABYLON.Vector3(0, Y_CENTER, 5);
+let phase = 'loading';        // loading | intro | menu | playing | over
+let introT = 0;
+let assetsLoaded = 0;
+const assetsTotal = 1 + 6;    // dragon + 6 enemies
+let dragonReady = false;
+let quickPlay = false;
+let lives = 3, distance = 0, speed = BASE_SPEED, invuln = 0, shake = 0, camRoll = 0, dodgeCombo = 0, comboTimer = 0;
+let nextHealAt = 600;
+let target = { x: 0, y: Y_CENTER };
+const keys = {};
+let pointerDown = false;
+let bestScores = [];
+const $ = id => document.getElementById(id);
+
+// ---------- scene ----------
+function createScene() {
+  scene = new BABYLON.Scene(engine);
+  scene.clearColor = new BABYLON.Color4(0.07, 0.11, 0.20, 1);     // lighter dusk-blue, not near-black
+  scene.fogMode = BABYLON.Scene.FOGMODE_LINEAR;
+  scene.fogColor = new BABYLON.Color3(0.12, 0.17, 0.28);
+  scene.fogStart = 95; scene.fogEnd = 175;                         // push fog back so obstacles read early
+
+  camera = new BABYLON.UniversalCamera("cam", new BABYLON.Vector3(0, Y_CENTER + 3, -12), scene);
+  camera.fov = 1.15; camera.minZ = 0.1; camera.maxZ = 480;
+
+  // orbit camera for the start-screen model showcase (mouse drag to spin around)
+  showcaseCam = new BABYLON.ArcRotateCamera("showcam", -Math.PI/2, Math.PI/2.25, 30,
+    SHOWCASE_CENTER(), scene);
+  showcaseCam.lowerRadiusLimit = 12; showcaseCam.upperRadiusLimit = 48;
+  showcaseCam.wheelPrecision = 18; showcaseCam.panningSensibility = 0; showcaseCam.minZ = 0.1; showcaseCam.maxZ = 480;
+  showcaseCam.fov = 1.0;
+
+  const hemi = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0.2, 1, 0.3), scene);
+  hemi.intensity = 1.7; hemi.groundColor = new BABYLON.Color3(0.34, 0.38, 0.5);
+  const dir = new BABYLON.DirectionalLight("dir", new BABYLON.Vector3(-0.4, -0.8, 0.55), scene);
+  dir.intensity = 2.2; dir.position = new BABYLON.Vector3(20, 40, -20);
+  const fill = new BABYLON.DirectionalLight("fill", new BABYLON.Vector3(0.2, -0.1, -1), scene);
+  fill.intensity = 1.3; fill.diffuse = new BABYLON.Color3(1.0, 0.95, 0.85);
+
+  dragonGlow = new BABYLON.PointLight("dglow", new BABYLON.Vector3(0, Y_CENTER, 0), scene);
+  dragonGlow.diffuse = new BABYLON.Color3(1.0, 0.6, 0.25); dragonGlow.intensity = 1.2; dragonGlow.range = 26;
+
+  const gl = new BABYLON.GlowLayer("glow", scene); gl.intensity = 0.55;
+
+  setupPipeline();
+  buildTunnel(); buildWarp(); buildGates();
+
+  dragonRoot = new BABYLON.TransformNode("dragonRoot", scene);
+  dragonBank = new BABYLON.TransformNode("dragonBank", scene); dragonBank.parent = dragonRoot;     // roll/pitch (world frame)
+  dragonFacing = new BABYLON.TransformNode("dragonFacing", scene); dragonFacing.parent = dragonBank; // constant yaw
+  dragonFacing.rotation.y = DRAGON_YAW;
+
+  loadDragon();
+  buildFireTrail();
+  buildHeals();
+  loadEnemies();
+  buildObstacles(false);   // boxes until models ready
+  return scene;
+}
+
+function setupPipeline() {
+  pipeline = new BABYLON.DefaultRenderingPipeline("rp", true, scene, [camera, showcaseCam]);
+  pipeline.fxaaEnabled = true;
+  pipeline.bloomEnabled = true;
+  pipeline.bloomThreshold = 0.9; pipeline.bloomWeight = 0.22; pipeline.bloomKernel = 40; pipeline.bloomScale = 0.5;
+  pipeline.chromaticAberrationEnabled = true;
+  pipeline.chromaticAberration.aberrationAmount = 0.8;
+  pipeline.grainEnabled = false;
+  pipeline.imageProcessingEnabled = true;
+  const ip = pipeline.imageProcessing;
+  ip.toneMappingEnabled = true; ip.toneMappingType = BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
+  ip.exposure = 1.2; ip.contrast = 1.1;
+  ip.vignetteEnabled = true; ip.vignetteWeight = 0.6; ip.vignetteStretch = 0.3;
+  ip.vignetteColor = new BABYLON.Color4(0.05, 0.07, 0.16, 1);
+}
+
+let tunnelTiles = [];
+function buildTunnel() {
+  const m = new BABYLON.StandardMaterial("gridMat", scene);
+  m.emissiveColor = new BABYLON.Color3(0.22, 0.38, 0.7); m.diffuseColor = new BABYLON.Color3(0.05,0.08,0.18);
+  m.wireframe = true; m.disableLighting = true;
+  for (let i = 0; i < 2; i++) {
+    const g = BABYLON.MeshBuilder.CreateGround("grnd"+i, { width: LANE_W*2.6, height: 230, subdivisions: 28 }, scene);
+    g.material = m; g.position.y = Y_CENTER - LANE_H - 1.6; g.position.z = i*230; tunnelTiles.push(g);
+    const c = g.clone("ceil"+i); c.position.y = Y_CENTER + LANE_H + 1.6; tunnelTiles.push(c);
+  }
+}
+
+function buildWarp() {
+  const m = new BABYLON.StandardMaterial("streakMat", scene);
+  m.emissiveColor = new BABYLON.Color3(0.28, 0.36, 0.5); m.disableLighting = true;  // dim, cool speed-lines
+  m.alpha = 0.6;
+  const proto = BABYLON.MeshBuilder.CreateBox("streakP", { width: 0.04, height: 0.04, depth: 1 }, scene);
+  proto.material = m; proto.isVisible = false;
+  for (let i = 0; i < 110; i++) { const s = proto.createInstance("st"+i); resetStreak(s, Math.random()*SPAWN_AHEAD); streaks.push(s); }
+}
+function resetStreak(s, z) {
+  // keep streaks OUT at the tunnel walls so they never overlap the enemy play-zone
+  const a = Math.random()*Math.PI*2, r = 24 + Math.random()*40;
+  s.position.set(Math.cos(a)*r, Y_CENTER + Math.sin(a)*r*0.6, z); s.basePhase = Math.random();
+}
+
+function buildGates() {
+  for (let i = 0; i < 4; i++) {
+    const t = BABYLON.MeshBuilder.CreateTorus("gate"+i, { diameter: 34, thickness: 0.7, tessellation: 48 }, scene);
+    const m = new BABYLON.StandardMaterial("gm"+i, scene); m.emissiveColor = new BABYLON.Color3(0.2,0.8,1.0); m.disableLighting = true;
+    t.material = m; t.rotation.x = Math.PI/2; t.position.set(0, Y_CENTER, 150 + i*130); gates.push(t);
+  }
+}
+
+let haloTex = null;
+function createHalo() {
+  if (haloTex) return haloTex;
+  const sz = 128, dt = new BABYLON.DynamicTexture("halo", sz, scene, false);
+  const ctx = dt.getContext();
+  const g = ctx.createRadialGradient(sz/2, sz/2, 0, sz/2, sz/2, sz/2);
+  g.addColorStop(0, "rgba(255,210,130,0.55)"); g.addColorStop(0.45, "rgba(255,120,50,0.35)");
+  g.addColorStop(0.75, "rgba(255,70,40,0.12)"); g.addColorStop(1, "rgba(255,60,30,0)");
+  ctx.fillStyle = g; ctx.fillRect(0,0,sz,sz); dt.hasAlpha = true; dt.update();
+  haloTex = dt; return dt;
+}
+function attachHalo(node, size) {
+  const p = BABYLON.MeshBuilder.CreatePlane("halo", { size: size }, scene);
+  const m = new BABYLON.StandardMaterial("halom", scene);
+  m.diffuseTexture = createHalo(); m.diffuseTexture.hasAlpha = true; m.useAlphaFromDiffuseTexture = true;
+  m.emissiveColor = new BABYLON.Color3(1, 0.55, 0.2);
+  m.disableLighting = true; m.backFaceCulling = false;
+  p.material = m; p.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL; p.isPickable = false;
+  p.parent = node; p.position.set(0, 0, 0); p.renderingGroupId = 0;
+  return p;
+}
+
+function createFlare() {
+  const sz = 128, dt = new BABYLON.DynamicTexture("flare", sz, scene, false);
+  const ctx = dt.getContext();
+  const g = ctx.createRadialGradient(sz/2, sz/2, 0, sz/2, sz/2, sz/2);
+  g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(0.35, "rgba(255,220,150,0.85)");
+  g.addColorStop(0.7, "rgba(255,120,40,0.25)"); g.addColorStop(1, "rgba(255,80,20,0)");
+  ctx.fillStyle = g; ctx.fillRect(0,0,sz,sz); dt.hasAlpha = true; dt.update(); return dt;
+}
+
+function brighten(meshes, f) {
+  meshes.forEach(m => {
+    const mat = m.material; if (!mat) return;
+    if (mat.getClassName && mat.getClassName().indexOf("PBR") >= 0) {
+      if (mat.albedoTexture) { mat.emissiveTexture = mat.albedoTexture; mat.emissiveColor = new BABYLON.Color3(f,f,f); }
+      else if (mat.albedoColor) mat.emissiveColor = mat.albedoColor.scale(f + 0.2);
+      mat.metallic = 0.05; mat.roughness = 0.9; mat.environmentIntensity = 1.2;
+    } else {
+      if (mat.diffuseTexture) { mat.emissiveTexture = mat.diffuseTexture; mat.emissiveColor = new BABYLON.Color3(f,f,f); }
+      else if (mat.diffuseColor) mat.emissiveColor = mat.diffuseColor.scale(f + 0.2);
+      mat.specularColor = new BABYLON.Color3(0.25,0.25,0.25);
+    }
+  });
+}
+
+function normalizeImported(meshes, root, targetSize) {
+  let mn = new BABYLON.Vector3(1e9,1e9,1e9), mx = new BABYLON.Vector3(-1e9,-1e9,-1e9);
+  meshes.forEach(m => {
+    if (!m.getTotalVertices || m.getTotalVertices() === 0) return;
+    m.computeWorldMatrix(true);
+    const bb = m.getBoundingInfo().boundingBox;
+    mn = BABYLON.Vector3.Minimize(mn, bb.minimumWorld); mx = BABYLON.Vector3.Maximize(mx, bb.maximumWorld);
+  });
+  const size = mx.subtract(mn), maxDim = Math.max(size.x, size.y, size.z) || 1, scl = targetSize / maxDim;
+  root.scaling.scaleInPlace(scl);
+  root.position.subtractInPlace(mn.add(mx).scale(0.5).scale(scl));
+}
+
+function loadDragon() {
+  BABYLON.SceneLoader.ImportMeshAsync("", "./", "bird2.glb", scene).then(res => {
+    const root = res.meshes[0];
+    normalizeImported(res.meshes, root, 3.8);
+    root.rotation = BABYLON.Vector3.Zero();
+    root.parent = dragonFacing;
+    brighten(res.meshes, DRAGON_BRIGHT);
+    dragonModelRoot = root;
+    console.log("[dragon] loaded");
+    dragonReady = true; assetLoaded();
+  }).catch(err => {
+    console.error("dragon load failed", err);
+    const c = BABYLON.MeshBuilder.CreateCylinder("fb", { diameterTop: 0, diameterBottom: 2.4, height: 3.6 }, scene);
+    c.rotation.x = Math.PI/2; const m = new BABYLON.StandardMaterial("fbm", scene);
+    m.diffuseColor = new BABYLON.Color3(0.9,0.3,0.15); m.emissiveColor = new BABYLON.Color3(0.4,0.12,0.05); c.material = m;
+    c.parent = dragonFacing;
+    dragonReady = true; assetLoaded();
+  });
+}
+
+function assetLoaded() {
+  assetsLoaded++;
+  const pct = Math.min(100, Math.round(assetsLoaded / assetsTotal * 100));
+  const b = document.getElementById('loadingBar'); if (b) b.style.width = pct + '%';
+  const t = document.getElementById('loadingPct'); if (t) t.textContent = 'ドラゴンと仲間たちを読み込み中… ' + pct + '%';
+  if (assetsLoaded >= assetsTotal) maybeBeginIntro(false);
+}
+
+function maybeBeginIntro(force) {
+  if (phase !== 'loading') return;
+  if (!force && (assetsLoaded < assetsTotal || !dragonReady)) return;
+  document.getElementById('loadingScreen').classList.add('hidden');
+  if (quickPlay) { enterMenu(); startGame(); return; }
+  if (location.hash.indexOf('menu') >= 0) { enterMenu(); return; } // skip intro -> showcase
+  phase = 'intro'; introT = 0;
+  // wall-clock fallback so the menu appears even if frame timing lags
+  setTimeout(() => { if (phase === 'intro') enterMenu(); }, INTRO_DUR*1000 + 900);
+}
+
+function loadEnemies() {
+  ENEMIES.forEach((e, i) => {
+    BABYLON.SceneLoader.ImportMeshAsync("", "./models/", e.file, scene).then(res => {
+      const root = res.meshes[0];
+      normalizeImported(res.meshes, root, 3.0);
+      brighten(res.meshes, ENEMY_BRIGHT);
+      const holder = new BABYLON.TransformNode("tmpl_"+e.file, scene);
+      root.parent = holder; holder.setEnabled(false);
+      templates.push({ holder, name: e.name });
+      console.log("[enemy] loaded", e.file, templates.length + "/" + ENEMIES.length);
+      if (templates.length === ENEMIES.length) buildObstacles(true); // all ready -> swap in models
+      assetLoaded();
+    }).catch(err => { console.warn("enemy load failed", e.file, err); assetLoaded(); });
+  });
+}
+
+function buildFireTrail() {
+  const flare = createFlare();
+  fireTrail = new BABYLON.ParticleSystem("fire", 1600, scene);
+  fireTrail.particleTexture = flare; fireTrail.emitter = dragonRoot;
+  fireTrail.minEmitBox = new BABYLON.Vector3(-0.5,-0.2,-1.6); fireTrail.maxEmitBox = new BABYLON.Vector3(0.5,0.4,-0.6);
+  fireTrail.color1 = new BABYLON.Color4(1.0,0.75,0.2,1.0); fireTrail.color2 = new BABYLON.Color4(1.0,0.25,0.05,1.0);
+  fireTrail.colorDead = new BABYLON.Color4(0.2,0.02,0.0,0.0);
+  fireTrail.minSize = 0.25; fireTrail.maxSize = 0.95; fireTrail.minLifeTime = 0.14; fireTrail.maxLifeTime = 0.34;
+  fireTrail.emitRate = 340; fireTrail.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
+  fireTrail.direction1 = new BABYLON.Vector3(-0.25,-0.15,-4); fireTrail.direction2 = new BABYLON.Vector3(0.25,0.25,-7);
+  fireTrail.minEmitPower = 2; fireTrail.maxEmitPower = 5; fireTrail.updateSpeed = 0.012; fireTrail.start();
+
+  sparkBurst = new BABYLON.ParticleSystem("spark", 700, scene);
+  sparkBurst.particleTexture = flare; sparkBurst.emitter = dragonRoot;
+  sparkBurst.color1 = new BABYLON.Color4(1,0.4,0.2,1); sparkBurst.color2 = new BABYLON.Color4(1,0.85,0.3,1);
+  sparkBurst.colorDead = new BABYLON.Color4(0.3,0,0,0);
+  sparkBurst.minSize = 0.2; sparkBurst.maxSize = 0.8; sparkBurst.minLifeTime = 0.25; sparkBurst.maxLifeTime = 0.55;
+  sparkBurst.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD; sparkBurst.createSphereEmitter(2.4);
+  sparkBurst.minEmitPower = 4; sparkBurst.maxEmitPower = 9; sparkBurst.emitRate = 0; sparkBurst.start();
+}
+
+function buildHeals() {
+  for (let i = 0; i < 2; i++) {
+    const h = BABYLON.MeshBuilder.CreatePolyhedron("heal"+i, { type: 1, size: 1.0 }, scene); // octahedron
+    const m = new BABYLON.StandardMaterial("hm"+i, scene);
+    m.emissiveColor = new BABYLON.Color3(0.15, 0.95, 0.4); m.diffuseColor = new BABYLON.Color3(0.1,0.6,0.25);
+    m.disableLighting = false; h.material = m;
+    const ring = BABYLON.MeshBuilder.CreateTorus("hr"+i, { diameter: 3.0, thickness: 0.16, tessellation: 28 }, scene);
+    const rm = new BABYLON.StandardMaterial("hrm"+i, scene); rm.emissiveColor = new BABYLON.Color3(0.2,1.0,0.5); rm.disableLighting = true;
+    ring.material = rm; ring.parent = h;
+    h.metadata = { active: false, ring };
+    h.setEnabled(false);
+    heals.push(h);
+  }
+}
+
+function makeBox(i) {
+  const COL = [[0.95,0.16,0.18],[0.98,0.55,0.10],[0.13,0.48,0.92],[0.16,0.72,0.34],[0.99,0.84,0.16],[0.66,0.26,0.86]];
+  const m = BABYLON.MeshBuilder.CreateBox("obs"+i, { size: 2.2 }, scene);
+  const mat = new BABYLON.StandardMaterial("om"+i, scene); const c = COL[i % COL.length];
+  mat.diffuseColor = new BABYLON.Color3(c[0],c[1],c[2]); mat.emissiveColor = new BABYLON.Color3(c[0]*0.4,c[1]*0.4,c[2]*0.4);
+  return m;
+}
+
+function buildObstacles(useModels) {
+  obstacles.forEach(o => o.dispose());
+  obstacles = [];
+  for (let i = 0; i < NUM_OBSTACLES; i++) {
+    let node;
+    if (useModels && templates.length) {
+      const t = templates[i % templates.length];
+      node = t.holder.clone("obs"+i, null); node.setEnabled(true); node.name = "obs"+i;
+    } else {
+      node = makeBox(i);
+    }
+    node.metadata = { spin: (Math.random()*2-1)*0.04, scored: false };
+    attachHalo(node, 5.5);   // warm danger aura so enemies stand out from the cool speed-lines
+    placeObstacle(node, 40 + (i / NUM_OBSTACLES) * SPAWN_AHEAD);
+    obstacles.push(node);
+  }
+}
+
+function placeObstacle(m, baseZ) {
+  m.position.x = (Math.random()*2-1) * (LANE_W - 1.5);
+  m.position.y = Y_CENTER + (Math.random()*2-1) * (LANE_H - 1.2);
+  m.position.z = baseZ + Math.random()*22;
+  m.rotation.set(Math.random()*3, Math.random()*3, Math.random()*3);
+  if (m.metadata) m.metadata.scored = false;
+}
+
+function activateHeal() {
+  const h = heals.find(x => !x.metadata.active); if (!h) return;
+  h.metadata.active = true; h.setEnabled(true);
+  h.position.x = (Math.random()*2-1) * (LANE_W - 2);
+  h.position.y = Y_CENTER + (Math.random()*2-1) * (LANE_H - 2);
+  h.position.z = distance + SPAWN_AHEAD;
+}
+
+// ---------- start-screen model showcase ----------
+function makeLabel(text) {
+  const dt = new BABYLON.DynamicTexture("lbl", { width: 768, height: 160 }, scene, true);
+  dt.hasAlpha = true;
+  dt.drawText(text, null, 110, "bold 60px 'Hiragino Sans','Noto Sans JP',sans-serif", "#ffffff", "transparent", true);
+  const p = BABYLON.MeshBuilder.CreatePlane("lblp", { width: 7.2, height: 1.5 }, scene);
+  const m = new BABYLON.StandardMaterial("lblm", scene);
+  m.diffuseTexture = dt; m.diffuseTexture.hasAlpha = true; m.useAlphaFromDiffuseTexture = true;
+  m.emissiveColor = new BABYLON.Color3(1,1,1); m.disableLighting = true; m.backFaceCulling = false;
+  p.material = m; p.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL; p.isPickable = false;
+  return p;
+}
+
+function buildShowcase() {
+  if (showcaseBuilt) return;
+  showcaseBuilt = true;
+  showcaseRoot = new BABYLON.TransformNode("showcaseRoot", scene);
+  const C = SHOWCASE_CENTER();
+
+  const sources = [];
+  if (dragonModelRoot) sources.push({ node: dragonModelRoot, name: "ドラゴン (自機)", yaw: DRAGON_YAW });
+  templates.forEach(t => sources.push({ node: t.holder, name: t.name, yaw: 0 }));
+
+  const n = sources.length;
+  sources.forEach((src, i) => {
+    const theta = (i / n) * Math.PI * 2;
+    const R = 9.5;
+    const pivot = new BABYLON.TransformNode("scp"+i, scene);
+    pivot.parent = showcaseRoot;
+    pivot.position.set(C.x + Math.sin(theta)*R, C.y, C.z + Math.cos(theta)*R);
+    pivot.scaling.set(1.45, 1.45, 1.45);
+
+    const clone = src.node.clone("scm"+i, null);
+    clone.setEnabled(true);
+    clone.parent = pivot;
+    clone.position.set(0, 0, 0);
+    clone.rotation = new BABYLON.Vector3(0, src.yaw, 0);
+
+    const label = makeLabel(src.name);
+    label.parent = pivot;
+    label.position.set(0, 2.6, 0);
+    const k = 1/1.45; label.scaling.set(k, k, k);
+
+    showcaseItems.push({ pivot, spin: function(){ this.pivot.rotation.y += 0.012; } });
+  });
+  showcaseRoot.setEnabled(false);
+}
+
+function enterMenu() {
+  phase = 'menu';
+  buildShowcase();
+  if (showcaseRoot) showcaseRoot.setEnabled(true);
+  dragonRoot.setEnabled(false);
+  dragonBank.rotation.set(0,0,0);
+  if (fireTrail) fireTrail.emitRate = 0;   // no stray plume at the showcase center
+  scene.activeCamera = showcaseCam;
+  showcaseCam.alpha = -Math.PI/2; showcaseCam.beta = Math.PI/2.25; showcaseCam.radius = 30;
+  showcaseCam.setTarget(SHOWCASE_CENTER());
+  showcaseCam.attachControl(canvas, true);
+  $('startScreen').classList.remove('hidden');
+  $('menuRankBox').classList.remove('hidden');
+}
+
+function leaveMenu() {
+  if (showcaseRoot) showcaseRoot.setEnabled(false);
+  if (showcaseCam) showcaseCam.detachControl();
+  dragonRoot.setEnabled(true);
+  scene.activeCamera = camera;
+  $('menuRankBox').classList.add('hidden');
+}
+
+// ---------- game flow ----------
+function resetGame() {
+  lives = 3; distance = 0; speed = BASE_SPEED; invuln = 0; shake = 0; camRoll = 0; dodgeCombo = 0; comboTimer = 0;
+  nextHealAt = 500 + Math.random()*400;
+  target = { x: 0, y: Y_CENTER };
+  dragonRoot.position.set(0, Y_CENTER, 0);
+  dragonBank.rotation.set(0,0,0);
+  obstacles.forEach((m, i) => placeObstacle(m, 40 + (i / NUM_OBSTACLES) * SPAWN_AHEAD));
+  heals.forEach(h => { h.metadata.active = false; h.setEnabled(false); });
+  gates.forEach((g, i) => g.position.z = 150 + i*130);
+  updateHud();
+}
+function startGame() {
+  leaveMenu();
+  resetGame();
+  $('startScreen').classList.add('hidden'); $('overScreen').classList.add('hidden');
+  $('hud').classList.remove('hidden'); $('fx').style.opacity = 1;
+  phase = 'playing';
+}
+function gameOver() {
+  phase = 'over'; $('hud').classList.add('hidden'); $('fx').style.opacity = 0;
+  if (sparkBurst) sparkBurst.manualEmitCount = 320;
+  const d = Math.floor(distance);
+  $('finalDist').textContent = d.toLocaleString() + ' m';
+  $('overScreen').classList.remove('hidden');
+  handleScore(d);
+}
+function updateHud() {
+  $('dist').innerHTML = 'DISTANCE<b>' + Math.floor(distance).toLocaleString() + ' m</b>';
+  $('lives').textContent = '❤️'.repeat(Math.max(0,lives)) + '🖤'.repeat(Math.max(0,3 - lives));
+  const mult = speed / BASE_SPEED; const sp = $('speed');
+  sp.textContent = 'SPEED ' + mult.toFixed(1) + 'x'; sp.classList.toggle('boost', mult > 2.2);
+}
+function flashToast(t, color) {
+  const el = $('toast'); el.textContent = t; el.style.color = color || '#fff';
+  el.style.opacity = 1; el.style.transform = 'translate(-50%,-50%) scale(1.1)';
+  clearTimeout(el._t); el._t = setTimeout(() => { el.style.opacity = 0; el.style.transform = 'translate(-50%,-50%) scale(.6)'; }, 650);
+}
+function showCombo() {
+  if (dodgeCombo < 5 || dodgeCombo % 5 !== 0) return;
+  const el = $('combo'); el.textContent = '🔥 ' + dodgeCombo + ' COMBO';
+  el.style.opacity = 1; clearTimeout(el._t); el._t = setTimeout(() => el.style.opacity = 0, 800);
+}
+function hit() {
+  lives--; invuln = INVULN_TIME; shake = 0.9; dodgeCombo = 0;
+  if (sparkBurst) sparkBurst.manualEmitCount = 160;
+  if (pipeline) pipeline.chromaticAberration.aberrationAmount = 45;
+  $('hitfx').style.opacity = 1; setTimeout(() => $('hitfx').style.opacity = 0, 200);
+  updateHud();
+  if (lives <= 0) { flashToast('💥 CRASH', '#ff4040'); gameOver(); }
+  else flashToast('HIT! 残り ' + lives, '#ff6b6b');
+}
+function pickupHeal(h) {
+  h.metadata.active = false; h.setEnabled(false);
+  if (sparkBurst) sparkBurst.manualEmitCount = 120;
+  $('healfx').style.opacity = 1; setTimeout(() => $('healfx').style.opacity = 0, 220);
+  if (lives < 3) { lives++; flashToast('💚 +1 LIFE', '#46ff8c'); }
+  else flashToast('💚 MAX', '#46ff8c');
+  updateHud();
+}
+
+// ---------- main loop ----------
+function update(dt) {
+  const tms = performance.now();
+  if (phase === 'loading') {
+    // calm idle while assets load: slow drift through the tunnel
+    dragonRoot.position.set(0, Y_CENTER, 0);
+    camera.position.set(Math.sin(tms*0.0004)*2.5, Y_CENTER + 3, -12);
+    camera.rotation.z = 0;
+    camera.setTarget(new BABYLON.Vector3(0, Y_CENTER, 16));
+    camera.fov = 1.15;
+    animateAmbient(dt, tms, BASE_SPEED*0.5);
+    return;
+  }
+  if (phase === 'intro') return updateIntro(dt, tms);
+  if (phase === 'menu') {
+    // arc camera is mouse-controlled; just keep the showcase models turning
+    for (const it of showcaseItems) it.spin();
+    animateAmbient(dt, tms, BASE_SPEED*0.4);
+    return;
+  }
+  if (phase !== 'playing') { animateAmbient(dt, tms, BASE_SPEED*0.5); spinHeals(dt); return; } // 'over' holds the view
+
+  speed = Math.min(MAX_SPEED, BASE_SPEED + (distance / 100) * BASE_SPEED * 0.16);
+  distance += speed * dt;
+  const dragZ = distance, boost = speed / BASE_SPEED;
+
+  const mv = 22;
+  if (keys['arrowleft'] || keys['a']) target.x -= mv*dt;
+  if (keys['arrowright']|| keys['d']) target.x += mv*dt;
+  if (keys['arrowup']   || keys['w']) target.y += mv*dt;
+  if (keys['arrowdown'] || keys['s']) target.y -= mv*dt;
+  target.x = Math.max(-LANE_W, Math.min(LANE_W, target.x));
+  target.y = Math.max(Y_CENTER-LANE_H, Math.min(Y_CENTER+LANE_H, target.y));
+
+  const px = dragonRoot.position.x, py = dragonRoot.position.y;
+  dragonRoot.position.x += (target.x - px) * Math.min(1, dt*12);
+  dragonRoot.position.y += (target.y - py) * Math.min(1, dt*12);
+  dragonRoot.position.z = dragZ;
+  const vx = dragonRoot.position.x - px, vy = dragonRoot.position.y - py;
+
+  // banking on world-aligned node: roll about Z (left/right), pitch about X (up/down)
+  dragonBank.rotation.z += ((ROLL_SIGN * vx * 11) - dragonBank.rotation.z) * Math.min(1, dt*9);
+  dragonBank.rotation.x += ((PITCH_SIGN * vy * 9) - dragonBank.rotation.x) * Math.min(1, dt*9);
+  dragonFacing.position.y = Math.sin(tms*0.012) * 0.14;
+  dragonGlow.position.copyFrom(dragonRoot.position);
+  if (fireTrail) fireTrail.emitRate = 240 + boost*360;
+
+  // camera follow + roll + shake + speed fov
+  camRoll += ((-vx*1.2) - camRoll) * Math.min(1, dt*5);
+  const sx = shake?(Math.random()*2-1)*shake:0, sy = shake?(Math.random()*2-1)*shake:0;
+  camera.position.x += (dragonRoot.position.x*0.6 + sx - camera.position.x) * Math.min(1, dt*7);
+  camera.position.y += (dragonRoot.position.y + 3.0 + sy - camera.position.y) * Math.min(1, dt*7);
+  camera.position.z = dragZ - 12 - boost*0.7;
+  camera.setTarget(new BABYLON.Vector3(dragonRoot.position.x*0.4, dragonRoot.position.y, dragZ + 18));
+  camera.rotation.z = camRoll * 0.45;
+  camera.fov = 1.15 + Math.min(0.3, (boost-1)*0.15);
+  shake *= 0.85; if (shake < 0.01) shake = 0;
+  if (pipeline) pipeline.chromaticAberration.aberrationAmount += (1.5 + boost*3 - pipeline.chromaticAberration.aberrationAmount) * Math.min(1, dt*4);
+
+  if (invuln > 0) { invuln -= dt; if (dragonFacing) dragonFacing.setEnabled(Math.floor(tms/70)%2===0); }
+  else if (dragonFacing) dragonFacing.setEnabled(true);
+  if (comboTimer > 0) { comboTimer -= dt; if (comboTimer <= 0) dodgeCombo = 0; }
+
+  // obstacles
+  for (const m of obstacles) {
+    m.rotation.y += m.metadata.spin; m.rotation.x += m.metadata.spin*0.5;
+    if (m.position.z < dragZ - RECYCLE_BEHIND) placeObstacle(m, dragZ + SPAWN_AHEAD);
+    const dz = m.position.z - dragZ;
+    if (invuln <= 0 && Math.abs(dz) < HIT_Z) {
+      const dx = m.position.x - dragonRoot.position.x, dy = m.position.y - dragonRoot.position.y;
+      if (dx*dx + dy*dy < HIT_R*HIT_R) { hit(); placeObstacle(m, dragZ + SPAWN_AHEAD); continue; }
+    }
+    if (!m.metadata.scored && dz < -0.5 && dz > -3.0) { m.metadata.scored = true; dodgeCombo++; comboTimer = 2.0; showCombo(); }
+  }
+
+  // heal spawn + pickup
+  if (distance >= nextHealAt) { activateHeal(); nextHealAt = distance + 700 + Math.random()*700; }
+  for (const h of heals) {
+    if (!h.metadata.active) continue;
+    h.rotation.y += dt*2.0; h.metadata.ring.rotation.z += dt*1.5;
+    const s = 1 + Math.sin(tms*0.006)*0.12; h.scaling.set(s,s,s);
+    if (h.position.z < dragZ - 6) { h.metadata.active = false; h.setEnabled(false); continue; }
+    const dz = h.position.z - dragZ;
+    if (Math.abs(dz) < 2.2) {
+      const dx = h.position.x - dragonRoot.position.x, dy = h.position.y - dragonRoot.position.y;
+      if (dx*dx + dy*dy < 5.5) pickupHeal(h);
+    }
+  }
+
+  for (const g of gates) {
+    if (g.position.z < dragZ - 8) g.position.z += 520;
+    const near = 1 - Math.min(1, Math.abs(g.position.z - dragZ)/34);
+    g.material.emissiveColor = new BABYLON.Color3(0.15+near*0.4, 0.7, 1.0); g.rotation.z += dt*0.3;
+  }
+
+  animateAmbient(dt, tms, speed);
+  updateHud();
+}
+
+function updateIntro(dt, tms) {
+  introT += dt;
+  const t = Math.min(1, introT / INTRO_DUR);
+  const dpos = new BABYLON.Vector3(0, Y_CENTER, 0);
+  // the dragon hovers near origin, facing +Z (its front), breathing fire
+  dragonRoot.position.copyFrom(dpos);
+  dragonFacing.position.y = Math.sin(tms*0.01) * 0.14;
+  if (fireTrail) fireTrail.emitRate = 650;
+  dragonGlow.position.copyFrom(dpos);
+  const faceTarget = new BABYLON.Vector3(dpos.x, Y_CENTER + 0.7, dpos.z);
+
+  if (t < 0.62) {
+    // ── HERO SHOT: camera in FRONT of the dragon, close-up of its face, slow orbit + push-in
+    const u = t / 0.62;
+    const ang = -0.85 + u * 1.45;       // sweep across the front
+    const rad = 9.0 - u * 3.3;          // push in 9.0 -> 5.7
+    camera.position.set(dpos.x + Math.sin(ang)*rad, Y_CENTER + 1.7 - u*0.7, dpos.z + Math.cos(ang)*rad);
+    camera.setTarget(faceTarget);
+    camera.fov = 0.92;
+    dragonBank.rotation.z = Math.sin(tms*0.004) * 0.16;   // gentle idle banking
+    dragonBank.rotation.x = -0.05 + Math.sin(tms*0.003) * 0.05;
+  } else {
+    // ── SWING AROUND to the gameplay (behind) view
+    const u = (t - 0.62) / 0.38, e = 1 - Math.pow(1 - u, 2);
+    const fAng = 0.6, fRad = 5.7;
+    const from = new BABYLON.Vector3(dpos.x + Math.sin(fAng)*fRad, Y_CENTER + 1.0, dpos.z + Math.cos(fAng)*fRad);
+    const to = new BABYLON.Vector3(0, Y_CENTER + 3, -12);
+    camera.position = BABYLON.Vector3.Lerp(from, to, e);
+    const tgt = BABYLON.Vector3.Lerp(faceTarget, new BABYLON.Vector3(0, Y_CENTER, 16), e);
+    camera.setTarget(tgt);
+    camera.fov = 0.92 + e * 0.26;
+    dragonBank.rotation.z = (1 - e) * 0.16;
+    dragonBank.rotation.x *= (1 - e);
+  }
+  animateAmbient(dt, tms, BASE_SPEED * 0.7);
+  if (introT >= INTRO_DUR) enterMenu();
+}
+
+function updateMenuCam(dt, tms) {
+  dragonRoot.position.set(Math.sin(tms*0.0006)*2, Y_CENTER + Math.sin(tms*0.0015)*0.3, 0);
+  dragonBank.rotation.z = Math.sin(tms*0.0009)*0.12;
+  dragonGlow.position.copyFrom(dragonRoot.position);
+  camera.position.x += (Math.sin(tms*0.0004)*3 - camera.position.x)*Math.min(1,dt*3);
+  camera.position.y += (Y_CENTER + 3 - camera.position.y)*Math.min(1,dt*3);
+  camera.position.z = -13; camera.rotation.z = 0;
+  camera.setTarget(new BABYLON.Vector3(dragonRoot.position.x*0.4, Y_CENTER, 16));
+  camera.fov = 1.18;
+}
+
+function spinHeals(dt) { for (const h of heals) if (h.metadata.active) h.rotation.y += dt*2; }
+
+function animateAmbient(dt, tms, spd) {
+  const dragZ = dragonRoot.position.z, boost = spd / BASE_SPEED;
+  for (const t of tunnelTiles) if (t.position.z + 115 < dragZ) t.position.z += 230;
+  for (const s of streaks) {
+    s.position.z -= spd * dt * 1.6;
+    s.scaling.z = 1.5 + boost*3.5 * (0.6 + 0.4*Math.sin(tms*0.01 + (s.basePhase||0)*6));
+    if (s.position.z < dragZ - 12) resetStreak(s, dragZ + SPAWN_AHEAD + Math.random()*30);
+  }
+}
+
+// ---------- leaderboard ----------
+function renderRank(listEl, scores, myIdx) {
+  listEl.innerHTML = '';
+  if (!scores || !scores.length) { listEl.innerHTML = '<div class="empty">まだ記録がありません</div>'; return; }
+  scores.slice(0,10).forEach((s, i) => {
+    const li = document.createElement('li'); if (i === myIdx) li.className = 'me';
+    li.innerHTML = '<span class="pos"></span><span class="nm"></span><span class="ds"></span>';
+    li.querySelector('.nm').textContent = s.name;
+    li.querySelector('.ds').textContent = Number(s.distance).toLocaleString() + ' m';
+    listEl.appendChild(li);
+  });
+}
+function fetchScores() {
+  return fetch('/api/scores').then(r => r.json()).then(j => { bestScores = j.scores || []; return bestScores; }).catch(() => bestScores);
+}
+function refreshMenuRank() { fetchScores().then(s => renderRank($('menuRankList'), s, -1)); }
+
+let pendingScore = 0;
+function handleScore(d) {
+  pendingScore = d;
+  $('nameEntry').classList.add('hidden');
+  fetchScores().then(scores => {
+    const qualifies = scores.length < 10 || d > (scores[scores.length-1]?.distance ?? -1) || scores.length < 10;
+    const willRank = scores.length < 10 || d > (scores[Math.min(9, scores.length-1)]?.distance ?? -1);
+    renderRank($('overRankList'), scores, -1);
+    if (willRank && d > 0) {
+      $('nameEntry').classList.remove('hidden');
+      setTimeout(() => $('nameInput').focus(), 100);
+    }
+  });
+}
+function submitScore() {
+  const name = ($('nameInput').value || '').trim() || '名無し';
+  $('submitBtn').disabled = true;
+  fetch('/api/scores', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name, distance: pendingScore }) })
+    .then(r => r.json()).then(j => {
+      bestScores = j.scores || [];
+      renderRank($('overRankList'), bestScores, (j.rank ? j.rank-1 : -1));
+      $('nameEntry').classList.add('hidden');
+      refreshMenuRank();
+    }).catch(()=>{}).finally(()=> $('submitBtn').disabled = false);
+}
+
+// ---------- roster ----------
+function renderRoster() {
+  const el = $('roster'); el.innerHTML = '';
+  ENEMIES.forEach(e => { const c = document.createElement('span'); c.className='chip'; c.textContent = e.name; el.appendChild(c); });
+}
+
+// ---------- input ----------
+addEventListener('keydown', e => {
+  const k = e.key.toLowerCase(); keys[k] = true;
+  if ((k === ' ' || k === 'enter')) {
+    if (phase === 'intro') { introT = INTRO_DUR; }
+    else if (phase === 'menu' || phase === 'over') {
+      if (phase === 'over' && !$('nameEntry').classList.contains('hidden') && document.activeElement === $('nameInput')) return;
+      startGame();
+    }
+  }
+  if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
+});
+addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+function pointerToWorld(ev) {
+  const r = canvas.getBoundingClientRect();
+  const px = (ev.clientX - r.left)/r.width, py = (ev.clientY - r.top)/r.height;
+  target.x = Math.max(-LANE_W, Math.min(LANE_W, (px*2-1)*LANE_W));
+  target.y = Math.max(Y_CENTER-LANE_H, Math.min(Y_CENTER+LANE_H, Y_CENTER - (py*2-1)*LANE_H));
+}
+canvas.addEventListener('pointerdown', e => { pointerDown = true; if (phase==='playing') pointerToWorld(e); });
+canvas.addEventListener('pointermove', e => { if (pointerDown && phase==='playing') pointerToWorld(e); });
+addEventListener('pointerup', () => pointerDown = false);
+$('startBtn').onclick = startGame; $('retryBtn').onclick = startGame; $('submitBtn').onclick = submitScore;
+$('nameInput') && $('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submitScore(); } });
+
+// ---------- boot ----------
+quickPlay = location.hash.indexOf('play') >= 0;
+createScene();
+renderRoster();
+refreshMenuRank();
+// hard fallback: never get stuck on the loading screen even if an asset stalls
+setTimeout(() => { if (phase === 'loading') maybeBeginIntro(true); }, 15000);
+let last = performance.now();
+engine.runRenderLoop(() => {
+  const now = performance.now(); const dt = Math.min(0.05, (now - last)/1000); last = now;
+  update(dt); scene.render();
+});
+addEventListener('resize', () => engine.resize());
+</script>
+</body>
+</html>
