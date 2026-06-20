@@ -274,10 +274,22 @@
 /* ---------------------------------------------------------------------- */
 
 const canvas = document.getElementById('renderCanvas');
+// iOS Safari has a tight WebGL memory/GPU budget and a known habit of losing the
+// context when MSAA antialiasing is combined with preserveDrawingBuffer. Blowing
+// that budget shows up to the player as a hang on the LOADING… screen (the context
+// is lost / the tab is reclaimed before boot finishes). Detect iPhone/iPad up front
+// so we can render leaner there: no MSAA, native (non-supersampled) resolution, and
+// smaller skybox textures further down.
+const IS_IOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+               (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 // `alpha: true` lets the canvas be transparent in Photo Mode so the live camera
 // feed (a <video> behind it) shows through; gameplay keeps clearColor alpha 1.
-const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true, antialias: true, alpha: true });
-engine.setHardwareScalingLevel(1 / Math.min(window.devicePixelRatio || 1, 2));
+const engine = new BABYLON.Engine(canvas, !IS_IOS, { preserveDrawingBuffer: true, stencil: true, antialias: !IS_IOS, alpha: true });
+// Desktop / Android: supersample up to 2× for crispness. iOS: render at native CSS
+// resolution (scaling 1) — on a DPR-3 iPhone the old 0.5 level meant a 4×-larger
+// framebuffer through the entire bloom/FXAA/glow post chain, enough to lose the GL
+// context during boot.
+engine.setHardwareScalingLevel(IS_IOS ? 1 : 1 / Math.min(window.devicePixelRatio || 1, 2));
 
 // ---------- config ----------
 const LANE_W = 15, LANE_H = 9, Y_CENTER = 7;     // wider play area
@@ -451,13 +463,16 @@ function buildSky() {
   skybox.material = skyMat;
 }
 function loadSkies() {
+  // Halve the cube-texture resolution on iOS to stay inside its texture-memory
+  // budget (three IBL skyboxes at 1024 was a major contributor to the boot hang).
+  const SKY_SIZE = IS_IOS ? 512 : 1024;
   // 1st マグマだまり: volcanic-cavern panorama (smoky ceiling + glowing molten horizon)
-  stageSkies[0] = new BABYLON.EquiRectangularCubeTexture("./assets/sky/magma.jpg", scene, 1024);
+  stageSkies[0] = new BABYLON.EquiRectangularCubeTexture("./assets/sky/magma.jpg", scene, SKY_SIZE);
   // 2nd 岩の草原: partly-cloudy blue sky (Poly Haven "kloofendal_48d_partly_cloudy_puresky", CC0)
   // args: url, scene, size, noMipmap=false, generateHarmonics=true, gammaSpace=false, prefilterOnLoad=true
-  stageSkies[1] = new BABYLON.HDRCubeTexture("./assets/sky/grass.hdr", scene, 512, false, true, false, true);
+  stageSkies[1] = new BABYLON.HDRCubeTexture("./assets/sky/grass.hdr", scene, IS_IOS ? 256 : 512, false, true, false, true);
   // 3rd 宇宙空間: real all-sky Milky Way panorama (ESO/S.Brunier, CC BY 4.0)
-  stageSkies[2] = new BABYLON.EquiRectangularCubeTexture("./assets/sky/space.jpg", scene, 1024);
+  stageSkies[2] = new BABYLON.EquiRectangularCubeTexture("./assets/sky/space.jpg", scene, SKY_SIZE);
   stageSkies.forEach(t => { t.coordinatesMode = BABYLON.Texture.SKYBOX_MODE; });
   stageSkies[0].level = 0.42;   // strongly dim the very bright molten panorama — it was washing everything out; obstacles/dragon are emissive-lit so they still read against the darker cavern
 }
@@ -1790,8 +1805,17 @@ setTimeout(() => { if (phase === 'loading') maybeBeginIntro(true); }, 15000);
 let last = performance.now();
 engine.runRenderLoop(() => {
   const now = performance.now(); const dt = Math.min(0.05, (now - last)/1000); last = now;
-  update(dt); scene.render();
+  // A throw here (e.g. a frame that lands mid GL-context-loss on iOS) must not be
+  // allowed to tear down the loop — that would leave the player stuck. Skip the bad
+  // frame and keep going; Babylon restores the context on its own.
+  try { update(dt); scene.render(); } catch (e) { console.warn('render frame skipped', e); }
 });
+// iOS can drop the WebGL context under memory pressure. Let the browser try to
+// restore it (preventDefault) and re-sync sizing when it comes back, instead of
+// leaving a frozen canvas behind.
+engine.onContextLostObservable.add(() => console.warn('WebGL context lost'));
+engine.onContextRestoredObservable.add(() => { console.warn('WebGL context restored'); engine.resize(); });
+canvas.addEventListener('webglcontextlost', e => e.preventDefault(), false);
 addEventListener('resize', () => engine.resize());
 addEventListener('orientationchange', () => setTimeout(() => engine.resize(), 250));
 if (window.visualViewport) window.visualViewport.addEventListener('resize', () => engine.resize());
