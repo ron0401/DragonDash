@@ -67,6 +67,8 @@
   .char-chip:hover { transform: translateY(-1px); background:rgba(255,255,255,.14); }
   .char-chip:active { transform: translateY(0); }
   .char-chip.sel { background: linear-gradient(90deg,#ff8a33,#ff2f5d); border-color: transparent; color:#fff; font-weight:800; box-shadow:0 5px 16px rgba(255,80,60,.42); }
+  .mode-chip.vhard { color:#ff9aa8; border-color: rgba(255,60,90,.4); }
+  .mode-chip.vhard.sel { background: linear-gradient(90deg,#7a0bd6,#c4002b); box-shadow:0 5px 18px rgba(180,0,60,.55); color:#fff; }
 
   #hud { position: fixed; top: 0; left: 0; right: 0; z-index: 15; display: flex; justify-content: space-between; align-items: flex-start;
          padding: calc(12px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 12px calc(16px + env(safe-area-inset-left)); pointer-events: none; }
@@ -128,6 +130,13 @@
     <p class="picker-label">▼ プレイキャラクターを選ぼう（次回のオープニングにも登場）</p>
     <div class="roster" id="roster"></div>
     <p id="menuBest" style="color:#ffd27a">🏆 自己ベスト 0 m</p>
+    <div id="modePicker" class="hidden">
+      <p class="picker-label">▼ モードを選ぼう</p>
+      <div class="roster">
+        <button class="char-chip mode-chip sel" id="modeNormal">🐉 ノーマル</button>
+        <button class="char-chip mode-chip vhard" id="modeVhard">💀 VERY HARD（3→6倍速・亜空間）</button>
+      </div>
+    </div>
     <div class="keys">操作 : <b>スワイプした方向へ動き続けます</b>・指を戻すか離すと停止（マウスはドラッグ）</div>
     <button class="btn" id="startBtn">▶ スタート / タップで開始</button>
     <div class="actions">
@@ -220,6 +229,10 @@ engine.setHardwareScalingLevel(1 / Math.min(window.devicePixelRatio || 1, 2));
 const LANE_W = 15, LANE_H = 9, Y_CENTER = 7;     // wider play area
 const SPAWN_AHEAD = 120, RECYCLE_BEHIND = 16, NUM_OBSTACLES = 26;
 const BASE_SPEED = 30, MAX_SPEED = BASE_SPEED * 3.4;
+// Very Hard Mode: unlocked once the best score reaches this distance. It starts
+// at 3x speed and ramps up to 6x, and is always played on the subspace-like
+// (宇宙空間 / DEEP SPACE) stage.
+const VHARD_UNLOCK = 10000, VHARD_START_MULT = 3, VHARD_MAX_MULT = 6, VHARD_STAGE = 2;
 const HIT_Z = 1.8, HIT_R = 1.9, INVULN_TIME = 1.5;
 const DRAGON_YAW = -Math.PI / 2;     // facing (yaw 90° right). flip sign if it faces backwards.
 const ROLL_SIGN = -1, PITCH_SIGN = -1; // banking direction. flip a sign if that axis feels reversed.
@@ -283,6 +296,7 @@ let assetsLoaded = 0;
 const assetsTotal = CHARACTERS.length;    // dragon + 6 others
 let dragonReady = false;
 let quickPlay = false;
+let veryHard = false;             // current run uses Very Hard Mode (3→6x, subspace)
 let lives = 3, distance = 0, speed = BASE_SPEED, invuln = 0, shake = 0, camRoll = 0, dodgeCombo = 0, comboTimer = 0;
 let nextHealAt = 600;
 let runStartBest = 0, beatBestFired = false;   // best at the start of this run + whether we've celebrated beating it
@@ -771,6 +785,7 @@ function enterMenu() {
   showcaseCam.attachControl(canvas, true);
   renderBest();
   renderCharPicker();
+  renderModePicker();
   setShowcaseHighlight(selectedCharIndex);
   $('startScreen').classList.remove('hidden');
 }
@@ -784,7 +799,7 @@ function leaveMenu() {
 
 // ---------- game flow ----------
 function resetGame() {
-  lives = 3; distance = 0; speed = BASE_SPEED; invuln = 0; shake = 0; camRoll = 0; dodgeCombo = 0; comboTimer = 0;
+  lives = 3; distance = 0; speed = BASE_SPEED * (veryHard ? VHARD_START_MULT : 1); invuln = 0; shake = 0; camRoll = 0; dodgeCombo = 0; comboTimer = 0;
   nextHealAt = 500 + Math.random()*400;
   runStartBest = getBest(); beatBestFired = false;   // remember the bar to beat + reset the celebration latch
   target = { x: 0, y: Y_CENTER };
@@ -794,7 +809,8 @@ function resetGame() {
   obstacles.forEach((m, i) => placeObstacle(m, 40 + (i / NUM_OBSTACLES) * SPAWN_AHEAD));
   heals.forEach(h => { h.metadata.active = false; h.setEnabled(false); });
   gates.forEach((g, i) => g.position.z = 150 + i*130);
-  applyStage(0, false); setStageTint(1);   // back to the 1st stage (マグマだまり)
+  // Very Hard always runs on the subspace-like stage; normal restarts at the 1st.
+  applyStage(veryHard ? VHARD_STAGE : 0, false); setStageTint(1);
   updateHud();
 }
 function startGame() {
@@ -802,6 +818,7 @@ function startGame() {
   resetGame();
   $('startScreen').classList.add('hidden'); $('overScreen').classList.add('hidden');
   $('hud').classList.remove('hidden'); $('fx').style.opacity = 1;
+  if (veryHard) { flashToast('💀 VERY HARD — 亜空間', '#c43cff'); flashCombo('3→6倍速 / SUBSPACE'); }
   phase = 'playing';
 }
 function gameOver() {
@@ -913,11 +930,15 @@ function update(dt) {
   }
   if (phase !== 'playing') { animateAmbient(dt, tms, BASE_SPEED*0.5); spinHeals(dt); return; } // 'over' holds the view
 
-  speed = Math.min(MAX_SPEED, BASE_SPEED + (distance / 100) * BASE_SPEED * 0.16);
+  // Very Hard ramps 3x→6x; normal ramps 1x→3.4x. Both scale with distance.
+  const startMult = veryHard ? VHARD_START_MULT : 1;
+  const maxMult   = veryHard ? VHARD_MAX_MULT   : MAX_SPEED / BASE_SPEED;
+  speed = BASE_SPEED * Math.min(maxMult, startMult + (distance / 100) * 0.16);
   distance += speed * dt;
   // the moment we pass the previous best, throw a celebration (once per run)
   if (!beatBestFired && runStartBest > 0 && distance > runStartBest) { beatBestFired = true; celebrateNewBest(); }
-  applyStage(stageForDistance(distance), true);   // advance 1st→2nd→3rd by distance
+  // Very Hard is locked to the subspace-like stage; normal advances 1st→2nd→3rd.
+  applyStage(veryHard ? VHARD_STAGE : stageForDistance(distance), true);
   const dragZ = distance, boost = speed / BASE_SPEED;
 
   const mv = 22;
@@ -1106,6 +1127,28 @@ function selectCharacter(i) {
   setShowcaseHighlight(i);
   document.querySelectorAll('#roster .char-chip').forEach(ch => ch.classList.toggle('sel', +ch.dataset.idx === i));
   notify((CHARACTERS[i].emoji ? CHARACTERS[i].emoji + ' ' : '') + CHARACTERS[i].name + ' で出撃！');
+}
+
+// ---------- game mode (Very Hard) ----------
+// Very Hard Mode is offered on the menu only once the best score reaches 10000m.
+function vhardUnlocked() { return getBest() >= VHARD_UNLOCK; }
+// Sync the menu's mode picker with the current unlock state + selection. If the
+// mode is locked, force the selection back to normal so a stale pick can't carry
+// a 6x run into a player who hasn't earned it.
+function renderModePicker() {
+  const mp = $('modePicker');
+  if (!mp) return;
+  const unlocked = vhardUnlocked();
+  mp.classList.toggle('hidden', !unlocked);
+  if (!unlocked) veryHard = false;
+  $('modeNormal').classList.toggle('sel', !veryHard);
+  $('modeVhard').classList.toggle('sel', veryHard);
+}
+function selectMode(vh) {
+  if (vh && !vhardUnlocked()) return;
+  veryHard = !!vh;
+  renderModePicker();
+  notify(veryHard ? '💀 VERY HARD MODE — 3→6倍速・亜空間を駆け抜けろ！' : '🐉 ノーマルモード');
 }
 
 // ---------- input ----------
@@ -1460,6 +1503,8 @@ function bindAction(id, fn) {
   el.addEventListener('pointerup', e => e.stopPropagation());
   el.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); fn(); });
 }
+bindAction('modeNormal', () => selectMode(false));
+bindAction('modeVhard', () => selectMode(true));
 bindAction('shareBtn', shareApp);
 bindAction('shareBtn2', shareApp);
 bindAction('cardBtn', () => saveOrShareCard({}));
