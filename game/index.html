@@ -1080,9 +1080,26 @@ function loadImage(src) {
 }
 // Grab the live 3D characters from the render canvas (preserveDrawingBuffer:true
 // keeps the last frame readable). On the menu this is the whole roster ring.
+// Hide the skybox + fog and render over a dark backdrop for the shot so the
+// characters stay readable instead of washing out against the bright magma sky.
 function captureCharImage() {
-  try { scene.render(); return canvas.toDataURL('image/png'); }
+  const savedSky = skybox && skybox.isEnabled();
+  const savedClear = scene.clearColor.clone();
+  const savedFog = scene.fogMode;
+  try {
+    if (skybox) skybox.setEnabled(false);
+    scene.fogMode = BABYLON.Scene.FOGMODE_NONE;
+    scene.clearColor = new BABYLON.Color4(0.06, 0.03, 0.05, 1);   // dark warm backdrop
+    scene.render();
+    return canvas.toDataURL('image/png');
+  }
   catch (_) { return null; }
+  finally {
+    if (skybox) skybox.setEnabled(savedSky);
+    scene.clearColor = savedClear;
+    scene.fogMode = savedFog;
+    scene.render();   // restore the live view
+  }
 }
 
 // Build the shareable greeting card: warm background, the game's characters,
