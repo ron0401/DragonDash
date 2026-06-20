@@ -215,10 +215,38 @@
   </div>
 </div>
 
+<script>
+/* Earliest-possible boot-error reporter — intentionally ES5-only so it parses on
+   every browser. It runs BEFORE the library/main scripts below, so it catches a
+   syntax error in any of them, a missing BABYLON global, or any throw during boot,
+   and prints it onto the LOADING… screen. Without this, such failures leave the
+   bar frozen at a silent "0%" (the static text) with no clue why. */
+window.__showBoot = function (msg) {
+  try {
+    var ls = document.getElementById('loadingScreen');
+    var t = document.getElementById('loadingPct');
+    if (t && ls && ls.className.indexOf('hidden') < 0) {
+      t.style.color = '#ff7a7a';
+      t.style.whiteSpace = 'pre-wrap';
+      t.textContent = '⚠️ 読み込みエラー\n' + msg;
+    }
+  } catch (e) {}
+};
+window.onerror = function (message, source, lineno) {
+  window.__showBoot(String(message) + (lineno ? ' @line ' + lineno : ''));
+};
+window.addEventListener('unhandledrejection', function (e) {
+  var r = e && e.reason;
+  window.__showBoot((r && (r.message || r)) || 'promise rejection');
+});
+</script>
 <script src="./lib/babylon.js"></script>
 <script src="./lib/babylonjs.loaders.min.js"></script>
 <script src="./lib/qrcode.js"></script>
 <script>
+// If the 3D library didn't load/parse, say so plainly instead of throwing an
+// opaque "BABYLON is not defined" a few lines down.
+if (typeof BABYLON === 'undefined') window.__showBoot('3Dライブラリ(babylon.js)を読み込めませんでした。');
 /* ---- PWA: service worker registration + install prompt ---------------- */
 (function setupPWA() {
   // Register the service worker for offline play / installability.
@@ -296,17 +324,8 @@ engine.setHardwareScalingLevel(IS_IOS ? 1 : 1 / Math.min(window.devicePixelRatio
 // the progress bar frozen at 0% with no clue why. This turns a silent hang into a
 // readable message we can act on.
 function reportBootError(msg) {
-  const ls = document.getElementById('loadingScreen');
-  const t = document.getElementById('loadingPct');
-  if (t && ls && !ls.classList.contains('hidden')) {
-    t.style.color = '#ff7a7a';
-    t.style.whiteSpace = 'pre-wrap';
-    t.textContent = '⚠️ 読み込みエラー\n' + msg;
-  }
+  if (window.__showBoot) window.__showBoot(msg);
 }
-window.addEventListener('error', e => reportBootError((e && e.message) || 'script error'));
-window.addEventListener('unhandledrejection', e =>
-  reportBootError((e && e.reason && (e.reason.message || e.reason)) || 'promise rejection'));
 
 // ---------- config ----------
 const LANE_W = 15, LANE_H = 9, Y_CENTER = 7;     // wider play area
@@ -1829,6 +1848,14 @@ try {
 }
 // hard fallback: never get stuck on the loading screen even if an asset stalls
 setTimeout(() => { if (phase === 'loading') maybeBeginIntro(true); }, 15000);
+// watchdog: if not a single model has even begun to arrive after a few seconds,
+// the .glb fetches are stalling (network, or a server that won't serve them on
+// this device) rather than the code failing — surface that instead of a mute 0%.
+setTimeout(() => {
+  if (phase === 'loading' && assetsLoaded === 0) {
+    reportBootError('モデルの読み込みが始まりません。\n通信状況やサーバー設定をご確認ください。');
+  }
+}, 8000);
 let last = performance.now();
 engine.runRenderLoop(() => {
   const now = performance.now(); const dt = Math.min(0.05, (now - last)/1000); last = now;
