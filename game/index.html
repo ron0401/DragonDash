@@ -218,10 +218,10 @@ const ENEMIES = [
 const STAGE_LEN = 2000;
 const STAGES = [
   { name:'マグマだまり', sub:'MAGMA CHAMBER', emoji:'🌋', toast:'#ff8a3a',
-    floor:null, sky:0, env:0.55,
-    clear:[0.06,0.02,0.01], fog:[0.26,0.06,0.03], fogStart:55, fogEnd:210,
-    streak:[1.0,0.50,0.20], gate:[1.0,0.45,0.10], glow:[1.0,0.50,0.20],
-    hemi:[0.50,0.28,0.22], hemiInt:0.7, dir:[1.0,0.55,0.30], dirInt:1.3 },
+    floor:null, sky:0, env:0.40,
+    clear:[0.04,0.015,0.008], fog:[0.20,0.045,0.025], fogStart:55, fogEnd:210,
+    streak:[1.0,0.50,0.20], gate:[1.0,0.45,0.10], glow:[1.0,0.52,0.22],
+    hemi:[0.42,0.23,0.18], hemiInt:0.5, dir:[1.0,0.55,0.30], dirInt:1.0 },
   { name:'岩の草原', sub:'ROCKY PLAINS', emoji:'🌿', toast:'#69e36b',
     floor:null, sky:1, env:1.15,
     clear:[0.55,0.70,0.85], fog:[0.70,0.82,0.92], fogStart:120, fogEnd:330,
@@ -355,6 +355,7 @@ function loadSkies() {
   // 3rd 宇宙空間: real all-sky Milky Way panorama (ESO/S.Brunier, CC BY 4.0)
   stageSkies[2] = new BABYLON.EquiRectangularCubeTexture("./assets/sky/space.jpg", scene, 1024);
   stageSkies.forEach(t => { t.coordinatesMode = BABYLON.Texture.SKYBOX_MODE; });
+  stageSkies[0].level = 0.62;   // dim the very bright molten panorama so the dragon reads against it
 }
 
 // ---- ground PBR materials (real CC0 textures) ----
