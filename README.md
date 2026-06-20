@@ -1,7 +1,13 @@
 # Dragon Dash 🐉
 
 ドラゴンを操作してトンネルを駆け抜ける Babylon.js 製のブラウザゲーム。
-サーバー不要の完全な静的サイト（GitHub Pages で公開可能）。
+サーバー不要の完全な静的サイト。
+
+## 🎮 プレイ（GitHub Pages）
+
+**▶ https://ron0401.github.io/DragonDash/game/**
+
+スマホ・タブレット・PC のブラウザでそのまま遊べます。
 
 ## 構成
 
@@ -32,7 +38,6 @@ python3 -m http.server 8000   # http://localhost:8000
 
 ## GitHub Pages で公開
 
-静的サイトなのでそのまま公開できる。リポジトリの Settings → Pages で
-公開元ブランチを指定する。URL は `https://<user>.github.io/<repo>/game/` となる。
-（ルート直下を公開URLにしたい場合は `game/` の中身をリポジトリ直下へ移すか、
-Pages の公開フォルダを `game/` に設定する。）
+`main` ブランチのルート (`/`) を公開元に設定済み。`game/` 配下にゲームがあるため
+公開URLは **https://ron0401.github.io/DragonDash/game/** となる。
+`main` に push すると自動で再ビルド・反映される。
