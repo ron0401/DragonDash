@@ -223,11 +223,12 @@ const ENEMIES = [
 ];
 
 // ---------- stages ----------
-// distance-driven progression: 0-2000 → 1st, 2000-4000 → 2nd, 4000+ → 3rd
+// distance-driven progression: 0-1000 → 1st, 1000-4000 → 2nd, 4000+ → 3rd
 // 1st: マグマだまり / 2nd: 岩の草原 / 3rd: 宇宙空間 — built from free CC0 PBR
 // textures (ambientCG Lava004) + HDRI/panorama skyboxes (Poly Haven / ESO).
 // `.floor` / `.sky` are filled in by buildStageMaterials()/loadSkies().
-const STAGE_LEN = 2000;
+// STAGE_STARTS[i] = distance (m) at which stage i begins.
+const STAGE_STARTS = [0, 1000, 4000];
 const STAGES = [
   { name:'マグマだまり', sub:'MAGMA CHAMBER', emoji:'🌋', toast:'#ff8a3a',
     floor:null, sky:0, env:0.34,
@@ -245,7 +246,7 @@ const STAGES = [
     streak:[0.90,0.95,1.0], gate:[0.60,0.40,1.0], glow:[0.50,0.50,1.0],
     hemi:[0.20,0.22,0.40], hemiInt:0.35, dir:[0.60,0.65,1.0], dirInt:0.5 },
 ];
-function stageForDistance(d) { return Math.min(STAGES.length - 1, Math.floor(d / STAGE_LEN)); }
+function stageForDistance(d) { let s = 0; for (let i = 0; i < STAGE_STARTS.length; i++) if (d >= STAGE_STARTS[i]) s = i; return Math.min(STAGES.length - 1, s); }
 
 // ---------- state ----------
 let scene, camera, showcaseCam, pipeline, dragonRoot, dragonBank, dragonFacing, dragonGlow, fireTrail, sparkBurst;
