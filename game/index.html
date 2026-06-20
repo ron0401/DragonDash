@@ -223,11 +223,12 @@ const ENEMIES = [
 ];
 
 // ---------- stages ----------
-// distance-driven progression: 0-2000 → 1st, 2000-4000 → 2nd, 4000+ → 3rd
+// distance-driven progression: 0-1000 → 1st, 1000-4000 → 2nd, 4000+ → 3rd
 // 1st: マグマだまり / 2nd: 岩の草原 / 3rd: 宇宙空間 — built from free CC0 PBR
 // textures (ambientCG Lava004) + HDRI/panorama skyboxes (Poly Haven / ESO).
 // `.floor` / `.sky` are filled in by buildStageMaterials()/loadSkies().
-const STAGE_LEN = 2000;
+// STAGE_STARTS[i] = distance (m) at which stage i begins.
+const STAGE_STARTS = [0, 1000, 4000];
 const STAGES = [
   { name:'マグマだまり', sub:'MAGMA CHAMBER', emoji:'🌋', toast:'#ff8a3a',
     floor:null, sky:0, env:0.34,
@@ -245,7 +246,7 @@ const STAGES = [
     streak:[0.90,0.95,1.0], gate:[0.60,0.40,1.0], glow:[0.50,0.50,1.0],
     hemi:[0.20,0.22,0.40], hemiInt:0.35, dir:[0.60,0.65,1.0], dirInt:0.5 },
 ];
-function stageForDistance(d) { return Math.min(STAGES.length - 1, Math.floor(d / STAGE_LEN)); }
+function stageForDistance(d) { let s = 0; for (let i = 0; i < STAGE_STARTS.length; i++) if (d >= STAGE_STARTS[i]) s = i; return Math.min(STAGES.length - 1, s); }
 
 // ---------- state ----------
 let scene, camera, showcaseCam, pipeline, dragonRoot, dragonBank, dragonFacing, dragonGlow, fireTrail, sparkBurst;
@@ -301,7 +302,7 @@ function createScene() {
   dragonGlow = new BABYLON.PointLight("dglow", new BABYLON.Vector3(0, Y_CENTER, 0), scene);
   dragonGlow.diffuse = new BABYLON.Color3(1.0, 0.6, 0.25); dragonGlow.intensity = 1.2; dragonGlow.range = 26;
 
-  const gl = new BABYLON.GlowLayer("glow", scene); gl.intensity = 0.8;   // makes the molten lava cracks bloom
+  const gl = new BABYLON.GlowLayer("glow", scene); gl.intensity = 0.35;   // subtle bloom on lava cracks / fire — kept low so it doesn't wash the magma stage white
 
   setupPipeline();
   buildSky(); buildTunnel(); buildWarp(); buildGates();
@@ -328,14 +329,14 @@ function setupPipeline() {
   pipeline = new BABYLON.DefaultRenderingPipeline("rp", true, scene, [camera, showcaseCam]);
   pipeline.fxaaEnabled = true;
   pipeline.bloomEnabled = true;
-  pipeline.bloomThreshold = 0.9; pipeline.bloomWeight = 0.22; pipeline.bloomKernel = 40; pipeline.bloomScale = 0.5;
+  pipeline.bloomThreshold = 1.0; pipeline.bloomWeight = 0.13; pipeline.bloomKernel = 40; pipeline.bloomScale = 0.5;
   pipeline.chromaticAberrationEnabled = true;
-  pipeline.chromaticAberration.aberrationAmount = 0.8;
+  pipeline.chromaticAberration.aberrationAmount = 0.3;
   pipeline.grainEnabled = false;
   pipeline.imageProcessingEnabled = true;
   const ip = pipeline.imageProcessing;
   ip.toneMappingEnabled = true; ip.toneMappingType = BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
-  ip.exposure = 1.2; ip.contrast = 1.1;
+  ip.exposure = 1.0; ip.contrast = 1.2;
   ip.vignetteEnabled = true; ip.vignetteWeight = 0.6; ip.vignetteStretch = 0.3;
   ip.vignetteColor = new BABYLON.Color4(0.05, 0.07, 0.16, 1);
 }
@@ -395,8 +396,11 @@ function buildStageMaterials() {
   lava.bumpTexture   = gTex("./assets/ground/lava_normal.jpg", U1, V1, true);
   pbrRoughness(lava, "./assets/ground/lava_rough.jpg", U1, V1);
   lava.emissiveTexture = gTex("./assets/ground/lava_emit.jpg", U1, V1);
-  lava.emissiveColor = new BABYLON.Color3(1, 1, 1); lava.emissiveIntensity = 1.0;   // glowing cracks only (bloom via GlowLayer); keep basalt dark
-  lava.environmentIntensity = 0.55;
+  // the emit map is a FULL bright lava field (not sparse cracks), so a white
+  // emissiveColor lit the whole floor to near-white and washed the screen out.
+  // Keep it a dim, dark-warm glow so the floor reads as molten rock, not a lamp.
+  lava.emissiveColor = new BABYLON.Color3(0.32, 0.16, 0.08); lava.emissiveIntensity = 0.45;
+  lava.environmentIntensity = 0.5;
 
   // ── 2nd: 岩の草原 — Poly Haven "aerial_grass_rock" PBR (grass + embedded rock) ──
   const U2 = 7, V2 = 34;
@@ -468,8 +472,8 @@ function createHalo() {
   const sz = 128, dt = new BABYLON.DynamicTexture("halo", sz, scene, false);
   const ctx = dt.getContext();
   const g = ctx.createRadialGradient(sz/2, sz/2, 0, sz/2, sz/2, sz/2);
-  g.addColorStop(0, "rgba(255,210,130,0.55)"); g.addColorStop(0.45, "rgba(255,120,50,0.35)");
-  g.addColorStop(0.75, "rgba(255,70,40,0.12)"); g.addColorStop(1, "rgba(255,60,30,0)");
+  g.addColorStop(0, "rgba(255,225,160,0.30)"); g.addColorStop(0.4, "rgba(255,140,60,0.18)");
+  g.addColorStop(0.7, "rgba(255,80,40,0.06)"); g.addColorStop(1, "rgba(255,60,30,0)");
   ctx.fillStyle = g; ctx.fillRect(0,0,sz,sz); dt.hasAlpha = true; dt.update();
   haloTex = dt; return dt;
 }
@@ -632,7 +636,7 @@ function buildObstacles(useModels) {
       node = makeBox(i);
     }
     node.metadata = { spin: (Math.random()*2-1)*0.04, scored: false };
-    attachHalo(node, 5.5);   // warm danger aura so enemies stand out from the cool speed-lines
+    attachHalo(node, 4.0);   // warm danger aura so enemies stand out — kept tight so it frames the model instead of swallowing it
     placeObstacle(node, 40 + (i / NUM_OBSTACLES) * SPAWN_AHEAD);
     obstacles.push(node);
   }
