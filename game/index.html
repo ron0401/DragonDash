@@ -185,7 +185,10 @@
   });
 
   if (installBtn) {
-    installBtn.addEventListener('click', async () => {
+    // Don't let the tap bubble to the start screen's tap-to-start handler.
+    installBtn.addEventListener('pointerup', e => e.stopPropagation());
+    installBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
       if (!deferredPrompt) return;
       deferredPrompt.prompt();
       try { await deferredPrompt.userChoice; } catch (_) {}
@@ -203,6 +206,8 @@
   // iOS Safari has no beforeinstallprompt — show manual "Add to Home Screen" hint.
   if (isIOS && !isStandalone && iosHint) {
     iosHint.classList.remove('hidden');
+    // Tapping the hint text shouldn't trigger tap-to-start either.
+    iosHint.addEventListener('pointerup', e => e.stopPropagation());
   }
 })();
 /* ---------------------------------------------------------------------- */
