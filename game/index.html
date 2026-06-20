@@ -215,10 +215,38 @@
   </div>
 </div>
 
+<script>
+/* Earliest-possible boot-error reporter — intentionally ES5-only so it parses on
+   every browser. It runs BEFORE the library/main scripts below, so it catches a
+   syntax error in any of them, a missing BABYLON global, or any throw during boot,
+   and prints it onto the LOADING… screen. Without this, such failures leave the
+   bar frozen at a silent "0%" (the static text) with no clue why. */
+window.__showBoot = function (msg) {
+  try {
+    var ls = document.getElementById('loadingScreen');
+    var t = document.getElementById('loadingPct');
+    if (t && ls && ls.className.indexOf('hidden') < 0) {
+      t.style.color = '#ff7a7a';
+      t.style.whiteSpace = 'pre-wrap';
+      t.textContent = '⚠️ 読み込みエラー\n' + msg;
+    }
+  } catch (e) {}
+};
+window.onerror = function (message, source, lineno) {
+  window.__showBoot(String(message) + (lineno ? ' @line ' + lineno : ''));
+};
+window.addEventListener('unhandledrejection', function (e) {
+  var r = e && e.reason;
+  window.__showBoot((r && (r.message || r)) || 'promise rejection');
+});
+</script>
 <script src="./lib/babylon.js"></script>
 <script src="./lib/babylonjs.loaders.min.js"></script>
 <script src="./lib/qrcode.js"></script>
 <script>
+// If the 3D library didn't load/parse, say so plainly instead of throwing an
+// opaque "BABYLON is not defined" a few lines down.
+if (typeof BABYLON === 'undefined') window.__showBoot('3Dライブラリ(babylon.js)を読み込めませんでした。');
 /* ---- PWA: service worker registration + install prompt ---------------- */
 (function setupPWA() {
   // Register the service worker for offline play / installability.
@@ -290,6 +318,14 @@ const engine = new BABYLON.Engine(canvas, !IS_IOS, { preserveDrawingBuffer: true
 // framebuffer through the entire bloom/FXAA/glow post chain, enough to lose the GL
 // context during boot.
 engine.setHardwareScalingLevel(IS_IOS ? 1 : 1 / Math.min(window.devicePixelRatio || 1, 2));
+
+// If anything throws while we're still on the LOADING… screen, surface it ON the
+// screen — otherwise a device-specific boot failure (often iOS-only) just leaves
+// the progress bar frozen at 0% with no clue why. This turns a silent hang into a
+// readable message we can act on.
+function reportBootError(msg) {
+  if (window.__showBoot) window.__showBoot(msg);
+}
 
 // ---------- config ----------
 const LANE_W = 15, LANE_H = 9, Y_CENTER = 7;     // wider play area
@@ -405,15 +441,21 @@ function createScene() {
   dragonGlow = new BABYLON.PointLight("dglow", new BABYLON.Vector3(0, Y_CENTER, 0), scene);
   dragonGlow.diffuse = new BABYLON.Color3(1.0, 0.6, 0.25); dragonGlow.intensity = 1.2; dragonGlow.range = 26;
 
-  const gl = new BABYLON.GlowLayer("glow", scene); gl.intensity = 0.35;   // subtle bloom on lava cracks / fire — kept low so it doesn't wash the magma stage white
-
-  setupPipeline();
-  buildSky(); buildTunnel(); buildWarp(); buildGates();
-
+  // Set up the dragon's transform hierarchy and START the (network-bound) character
+  // model downloads BEFORE the heavy GPU work below. The loading bar is driven by
+  // these model loads completing, so if any GPU step throws on a constrained device
+  // (iOS especially) the bar still progresses and the error gets surfaced — instead
+  // of the screen sitting silently at 0%.
   dragonRoot = new BABYLON.TransformNode("dragonRoot", scene);
   dragonBank = new BABYLON.TransformNode("dragonBank", scene); dragonBank.parent = dragonRoot;     // roll/pitch (world frame)
   dragonFacing = new BABYLON.TransformNode("dragonFacing", scene); dragonFacing.parent = dragonBank; // constant yaw
   dragonFacing.rotation.y = DRAGON_YAW;
+  loadCharacters();
+
+  const gl = new BABYLON.GlowLayer("glow", scene); gl.intensity = 0.35;   // subtle bloom on lava cracks / fire — kept low so it doesn't wash the magma stage white
+
+  setupPipeline();
+  buildSky(); buildTunnel(); buildWarp(); buildGates();
 
   loadSkies();
   buildStageMaterials();
@@ -422,7 +464,6 @@ function createScene() {
 
   buildFireTrail();
   buildHeals();
-  loadCharacters();
   buildObstacles(false);   // boxes until models ready
   return scene;
 }
@@ -1797,11 +1838,24 @@ $('shutterBtn').onclick = capturePhoto;
 // ---------- boot ----------
 quickPlay = location.hash.indexOf('play') >= 0;
 selectedCharIndex = Math.max(0, CHARACTERS.findIndex(c => c.id === getSelectedCharId()));
-createScene();
-renderCharPicker();
-renderBest();
+try {
+  createScene();
+  renderCharPicker();
+  renderBest();
+} catch (e) {
+  console.error('boot failed', e);
+  reportBootError((e && (e.stack || e.message)) || String(e));
+}
 // hard fallback: never get stuck on the loading screen even if an asset stalls
 setTimeout(() => { if (phase === 'loading') maybeBeginIntro(true); }, 15000);
+// watchdog: if not a single model has even begun to arrive after a few seconds,
+// the .glb fetches are stalling (network, or a server that won't serve them on
+// this device) rather than the code failing — surface that instead of a mute 0%.
+setTimeout(() => {
+  if (phase === 'loading' && assetsLoaded === 0) {
+    reportBootError('モデルの読み込みが始まりません。\n通信状況やサーバー設定をご確認ください。');
+  }
+}, 8000);
 let last = performance.now();
 engine.runRenderLoop(() => {
   const now = performance.now(); const dt = Math.min(0.05, (now - last)/1000); last = now;
