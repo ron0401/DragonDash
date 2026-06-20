@@ -94,6 +94,40 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   #loadingScreen .bar { width:min(280px,70vw); height:8px; margin:16px auto 0; border-radius:6px; background:rgba(255,255,255,.1); overflow:hidden; }
   #loadingScreen .bar > i { display:block; height:100%; width:0%; background:linear-gradient(90deg,#ff8a33,#ff3d5d); transition:width .25s; }
+
+  /* ---- Photo Mode (camera passthrough AR) ---- */
+  .btn-photo { background: linear-gradient(90deg,#2fd3ff,#7a5cff); box-shadow: 0 10px 24px rgba(60,160,255,.35); }
+  .btn-photo:hover { box-shadow: 0 16px 34px rgba(60,160,255,.5); }
+  /* live camera feed sits behind the (transparent) 3D canvas while in photo mode */
+  #camFeed { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; background:#04050a; display:none; }
+  #camFeed.show { display:block; }
+  #camFeed.mirror { transform: scaleX(-1); }
+  /* in photo mode the 3D canvas must paint ABOVE the camera video, but below the UI */
+  body.photomode #renderCanvas { position: fixed; inset: 0; z-index: 2; }
+  #photoFlash { position: fixed; inset: 0; z-index: 41; background:#fff; opacity:0; pointer-events:none; transition: opacity .12s; }
+  #photoFlash.fire { opacity:.9; transition:none; }
+
+  #photoScreen { position: fixed; inset: 0; z-index: 25; pointer-events: none;
+                 display:flex; flex-direction:column; justify-content:space-between;
+                 padding: calc(12px + env(safe-area-inset-top)) 14px calc(20px + env(safe-area-inset-bottom)); }
+  #photoScreen.hidden { display:none; }
+  .photo-top { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+  .photo-pill { pointer-events:auto; font: inherit; font-size:15px; font-weight:800; color:#fff; cursor:pointer;
+                background: rgba(8,12,22,.6); border:1px solid rgba(255,255,255,.18); border-radius:30px;
+                padding:10px 16px; min-height:44px; backdrop-filter: blur(6px); touch-action: manipulation; }
+  .photo-pill:active { transform: scale(.96); }
+  .photo-title { align-self:center; font-size:13px; font-weight:800; letter-spacing:.06em; color:#fff;
+                 background: rgba(8,12,22,.5); border:1px solid rgba(255,255,255,.12); border-radius:30px; padding:8px 16px; backdrop-filter: blur(6px); }
+  .photo-bottom { display:flex; flex-direction:column; align-items:center; gap:12px; }
+  .photo-hint { pointer-events:none; font-size:12px; color:#dfe6f2; text-align:center; line-height:1.6; text-shadow:0 1px 6px rgba(0,0,0,.8);
+                background: rgba(8,12,22,.35); border-radius:12px; padding:6px 12px; max-width:92vw; }
+  .photo-roster { pointer-events:auto; display:flex; gap:6px; justify-content:center; flex-wrap:wrap; max-width:96vw; }
+  #shutterBtn { pointer-events:auto; width:78px; height:78px; border-radius:50%; cursor:pointer; touch-action: manipulation;
+                background: radial-gradient(circle at 50% 50%, #fff 0 58%, transparent 60%);
+                border:5px solid rgba(255,255,255,.85); box-shadow:0 8px 26px rgba(0,0,0,.45);
+                display:flex; align-items:center; justify-content:center; }
+  #shutterBtn:active { transform: scale(.92); }
+  #shutterBtn[disabled] { opacity:.5; cursor:default; }
 </style>
 </head>
 <body>
@@ -140,6 +174,7 @@
     <div class="keys">操作 : <b>スワイプした方向へ動き続けます</b>・指を戻すか離すと停止（マウスはドラッグ）</div>
     <button class="btn" id="startBtn">▶ スタート / タップで開始</button>
     <div class="actions">
+      <button class="btn btn-sec btn-photo" id="photoBtn">📸 フォトモード</button>
       <button class="btn btn-sec" id="shareBtn">📤 アプリを共有</button>
       <button class="btn btn-sec btn-card" id="cardBtn">🎴 カードを保存</button>
     </div>
@@ -160,6 +195,23 @@
       <button class="btn btn-sec" id="shareBtn2">📤 アプリを共有</button>
       <button class="btn btn-sec btn-score" id="scoreImgBtn">🖼️ スコア画像をダウンロード</button>
     </div>
+  </div>
+</div>
+
+<!-- live camera feed for Photo Mode (rendered behind the transparent 3D canvas) -->
+<video id="camFeed" playsinline autoplay muted></video>
+<div id="photoFlash"></div>
+
+<div id="photoScreen" class="hidden">
+  <div class="photo-top">
+    <button class="photo-pill" id="photoBackBtn">← もどる</button>
+    <div class="photo-title">📸 フォトモード</div>
+    <button class="photo-pill" id="photoFlipBtn">🔄 カメラ切替</button>
+  </div>
+  <div class="photo-bottom">
+    <p class="photo-hint">🖐️ ドラッグで回転 ・ ピンチで大きさ ・ 2本指で移動<br>ドラゴンを好きな場所に置いて📸でさつえい！</p>
+    <div class="photo-roster" id="photoRoster"></div>
+    <button id="shutterBtn" aria-label="さつえい"></button>
   </div>
 </div>
 
@@ -222,7 +274,9 @@
 /* ---------------------------------------------------------------------- */
 
 const canvas = document.getElementById('renderCanvas');
-const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true, antialias: true });
+// `alpha: true` lets the canvas be transparent in Photo Mode so the live camera
+// feed (a <video> behind it) shows through; gameplay keeps clearColor alpha 1.
+const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true, antialias: true, alpha: true });
 engine.setHardwareScalingLevel(1 / Math.min(window.devicePixelRatio || 1, 2));
 
 // ---------- config ----------
@@ -290,8 +344,12 @@ let dragonModelRoot = null;       // the ACTIVE player model (a clone under drag
 let selectedCharIndex = 0;        // which CHARACTERS entry the player flies as
 let showcaseRoot = null, showcaseItems = [], showcaseBuilt = false;
 const SHOWCASE_CENTER = () => new BABYLON.Vector3(0, Y_CENTER, 5);
-let phase = 'loading';        // loading | intro | menu | playing | over
+let phase = 'loading';        // loading | intro | menu | playing | over | photo
 let introT = 0;
+// ---- Photo Mode (camera passthrough AR) ----
+let photoCam = null, photoModelRoot = null, photoSaved = null;
+let photoStream = null, photoFacing = 'environment';   // 'environment' = rear, 'user' = front
+let photoBusy = false;
 let assetsLoaded = 0;
 const assetsTotal = CHARACTERS.length;    // dragon + 6 others
 let dragonReady = false;
@@ -797,6 +855,203 @@ function leaveMenu() {
   scene.activeCamera = camera;
 }
 
+// ---------- Photo Mode (camera passthrough AR) ----------
+// Streams the device camera into a full-screen <video> behind the now-transparent
+// 3D canvas, drops the selected character into empty space, and lets the player
+// orbit / pinch / pan it like an AR sticker before snapping a composite photo.
+
+// Build the (single) character the player is posing with. Clones the loaded
+// holder so swapping characters is instant; centered at the origin the photo
+// camera orbits around.
+function buildPhotoModel(index) {
+  if (photoModelRoot) { photoModelRoot.dispose(); photoModelRoot = null; }
+  let tmpl = charTemplates[index];
+  if (!tmpl) { index = charTemplates.findIndex(t => t); tmpl = charTemplates[index]; }
+  if (!tmpl) return;
+  const root = new BABYLON.TransformNode("photoRoot", scene);
+  root.position.set(0, 0, 0);
+  const clone = tmpl.holder.clone("photoModel", null);
+  clone.setEnabled(true); clone.parent = root;
+  clone.position.set(0, 0, 0);
+  clone.rotation = new BABYLON.Vector3(0, index === 0 ? DRAGON_YAW : 0, 0);
+  photoModelRoot = root;
+}
+
+// Tappable character chips inside photo mode (mirrors the menu roster).
+function renderPhotoPicker() {
+  const el = $('photoRoster'); if (!el) return;
+  el.innerHTML = '';
+  CHARACTERS.forEach((c, i) => {
+    if (!charTemplates[i]) return;
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'char-chip' + (i === selectedCharIndex ? ' sel' : '');
+    chip.textContent = (c.emoji ? c.emoji + ' ' : '') + c.name;
+    chip.dataset.idx = i;
+    chip.addEventListener('click', e => {
+      e.stopPropagation(); e.preventDefault();
+      selectedCharIndex = i;
+      saveSelectedCharId(CHARACTERS[i].id);
+      setPlayerCharacter(i);            // keep the game's player in sync too
+      buildPhotoModel(i);
+      document.querySelectorAll('#photoRoster .char-chip').forEach(ch => ch.classList.toggle('sel', +ch.dataset.idx === i));
+    });
+    el.appendChild(chip);
+  });
+}
+
+// Start (or restart) the camera stream into the #camFeed video. Falls back to a
+// dark backdrop with a friendly note if the camera is unavailable / denied.
+async function startCameraFeed() {
+  stopCameraFeed();
+  const v = $('camFeed');
+  const mirror = photoFacing === 'user';
+  v.classList.toggle('mirror', mirror);
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    notify('📷 このブラウザはカメラに対応していません');
+    v.classList.add('show'); return;
+  }
+  try {
+    photoStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: photoFacing }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+      audio: false
+    });
+    v.srcObject = photoStream;
+    v.classList.add('show');
+    await v.play().catch(() => {});
+  } catch (e) {
+    console.warn('camera error', e);
+    notify('📷 カメラを起動できませんでした（許可が必要です）');
+    v.classList.add('show');   // shows the dark backdrop; model still poseable
+  }
+}
+function stopCameraFeed() {
+  if (photoStream) { photoStream.getTracks().forEach(t => t.stop()); photoStream = null; }
+  const v = $('camFeed'); if (v) { v.srcObject = null; }
+}
+
+function enterPhotoMode() {
+  if (phase === 'photo') return;
+  if (!charTemplates.some(t => t)) { notify('⏳ モデルを読み込み中です…'); return; }
+  // leave the menu showcase
+  if (showcaseCam) showcaseCam.detachControl();
+  if (showcaseRoot) showcaseRoot.setEnabled(false);
+  dragonRoot.setEnabled(false);
+  $('startScreen').classList.add('hidden');
+
+  // stash + hide the whole running world so only the posed model + camera remain
+  photoSaved = { fogMode: scene.fogMode, clear: scene.clearColor.clone(), skybox: skybox && skybox.isEnabled(), hidden: [] };
+  [].concat(tunnelTiles, obstacles, streaks, gates, heals).forEach(m => {
+    if (!m) return; photoSaved.hidden.push([m, m.isEnabled()]); m.setEnabled(false);
+  });
+  if (skybox) skybox.setEnabled(false);
+  scene.fogMode = BABYLON.Scene.FOGMODE_NONE;
+  scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);   // transparent → camera video shows through
+
+  // dedicated orbit camera (NOT wired to the post-process pipeline, so the photo
+  // isn't vignetted / grain'd over the real camera image)
+  if (!photoCam) {
+    photoCam = new BABYLON.ArcRotateCamera("photoCam", -Math.PI/2, Math.PI/2.1, 7, BABYLON.Vector3.Zero(), scene);
+    photoCam.lowerRadiusLimit = 2.5; photoCam.upperRadiusLimit = 26;
+    photoCam.wheelPrecision = 28; photoCam.pinchPrecision = 40;
+    photoCam.panningSensibility = 140; photoCam.panningInertia = 0.7;
+    photoCam.minZ = 0.05; photoCam.maxZ = 2000; photoCam.fov = 1.0;
+    photoCam.useNaturalPinchZoom = true;
+  }
+  buildPhotoModel(selectedCharIndex);
+  photoCam.alpha = -Math.PI/2; photoCam.beta = Math.PI/2.1; photoCam.radius = 7;
+  photoCam.setTarget(BABYLON.Vector3.Zero());
+  scene.activeCamera = photoCam;
+  photoCam.attachControl(canvas, true);
+
+  document.body.classList.add('photomode');
+  $('photoScreen').classList.remove('hidden');
+  renderPhotoPicker();
+  startCameraFeed();
+  phase = 'photo';
+}
+
+function exitPhotoMode() {
+  if (phase !== 'photo') return;
+  stopCameraFeed();
+  $('camFeed').classList.remove('show');
+  if (photoCam) photoCam.detachControl();
+  if (photoModelRoot) { photoModelRoot.dispose(); photoModelRoot = null; }
+  document.body.classList.remove('photomode');
+  $('photoScreen').classList.add('hidden');
+  // restore the world exactly as it was
+  if (photoSaved) {
+    photoSaved.hidden.forEach(([m, was]) => m.setEnabled(was));
+    if (skybox) skybox.setEnabled(photoSaved.skybox);
+    scene.fogMode = photoSaved.fogMode;
+    scene.clearColor = photoSaved.clear;
+    photoSaved = null;
+  }
+  enterMenu();            // rebuilds the showcase view + shows the start screen
+}
+
+function flipPhotoCamera() {
+  if (phase !== 'photo') return;
+  photoFacing = photoFacing === 'environment' ? 'user' : 'environment';
+  startCameraFeed();
+}
+
+// Snap the shot: composite the live camera frame (object-fit: cover) with the
+// freshly-rendered 3D layer, then hand off via the share sheet / download.
+async function capturePhoto() {
+  if (phase !== 'photo' || photoBusy) return;
+  photoBusy = true;
+  const shutter = $('shutterBtn'); if (shutter) shutter.disabled = true;
+  // quick shutter flash
+  const fl = $('photoFlash'); fl.classList.add('fire'); requestAnimationFrame(() => { fl.classList.remove('fire'); });
+  try {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const W = Math.max(1, Math.round(canvas.clientWidth * dpr));
+    const H = Math.max(1, Math.round(canvas.clientHeight * dpr));
+    const out = document.createElement('canvas'); out.width = W; out.height = H;
+    const ctx = out.getContext('2d');
+
+    const v = $('camFeed');
+    if (v && v.videoWidth) {
+      const s = Math.max(W / v.videoWidth, H / v.videoHeight);
+      const dw = v.videoWidth * s, dh = v.videoHeight * s;
+      ctx.save();
+      if (photoFacing === 'user') { ctx.translate(W, 0); ctx.scale(-1, 1); }   // match mirrored preview
+      ctx.drawImage(v, (W - dw) / 2, (H - dh) / 2, dw, dh);
+      ctx.restore();
+    } else {
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, '#10162a'); g.addColorStop(1, '#04050a');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    }
+    scene.render();                       // ensure the latest 3D frame is in the buffer
+    ctx.drawImage(canvas, 0, 0, W, H);    // overlay the (transparent-bg) 3D model
+
+    const blob = await new Promise(r => out.toBlob(r, 'image/png'));
+    if (!blob) throw new Error('toBlob failed');
+    const fname = 'dragon-dash-photo.png';
+    try {
+      const file = new File([blob], fname, { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: SHARE_TITLE, text: SHARE_TEXT });
+        photoBusy = false; if (shutter) shutter.disabled = false; return;
+      }
+    } catch (e) { if (e && e.name === 'AbortError') { photoBusy = false; if (shutter) shutter.disabled = false; return; } }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = fname;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    notify('📸 写真を保存しました');
+  } catch (e) {
+    console.warn('photo capture error', e);
+    notify('⚠️ 写真の保存に失敗しました');
+  }
+  photoBusy = false;
+  if (shutter) shutter.disabled = false;
+}
+
 // ---------- game flow ----------
 function resetGame() {
   lives = 3; distance = 0; speed = BASE_SPEED * (veryHard ? VHARD_START_MULT : 1); invuln = 0; shake = 0; camRoll = 0; dodgeCombo = 0; comboTimer = 0;
@@ -928,6 +1183,9 @@ function update(dt) {
     animateAmbient(dt, tms, BASE_SPEED*0.4);
     return;
   }
+  // Photo Mode: the ArcRotateCamera is fully gesture-controlled and the model is
+  // held still for stable framing — nothing to drive each frame.
+  if (phase === 'photo') return;
   if (phase !== 'playing') { animateAmbient(dt, tms, BASE_SPEED*0.5); spinHeals(dt); return; } // 'over' holds the view
 
   // Very Hard ramps 3x→6x; normal ramps 1x→3.4x. Both scale with distance.
@@ -1154,6 +1412,10 @@ function selectMode(vh) {
 // ---------- input ----------
 addEventListener('keydown', e => {
   const k = e.key.toLowerCase(); keys[k] = true;
+  if (phase === 'photo') {
+    if (k === 'escape') exitPhotoMode();
+    return;   // photo mode owns input; don't start a run from here
+  }
   if ((k === ' ' || k === 'enter')) {
     if (phase === 'intro') { introT = INTRO_DUR; }
     else if (phase === 'menu' || phase === 'over') {
@@ -1182,6 +1444,7 @@ function updateDragVel(curX, curY) {
   dragVY = -axisVel((curY - anchorY) / r.height);   // screen-down → world-down
 }
 canvas.addEventListener('pointerdown', e => {
+  if (phase === 'photo') return;   // let the ArcRotateCamera own the gesture in photo mode
   pointerDown = true; anchorX = e.clientX; anchorY = e.clientY;
   dragVX = dragVY = 0;
   if (canvas.setPointerCapture) { try { canvas.setPointerCapture(e.pointerId); } catch (_) {} }
@@ -1509,6 +1772,12 @@ bindAction('shareBtn', shareApp);
 bindAction('shareBtn2', shareApp);
 bindAction('cardBtn', () => saveOrShareCard({}));
 bindAction('scoreImgBtn', () => downloadScoreImage());
+// photo mode: the launch button lives on the menu (stop the tap-to-start bubble);
+// the in-mode controls live on their own overlay, so plain clicks are fine.
+bindAction('photoBtn', enterPhotoMode);
+$('photoBackBtn').onclick = exitPhotoMode;
+$('photoFlipBtn').onclick = flipPhotoCamera;
+$('shutterBtn').onclick = capturePhoto;
 
 // ---------- boot ----------
 quickPlay = location.hash.indexOf('play') >= 0;
