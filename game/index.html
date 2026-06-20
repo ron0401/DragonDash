@@ -291,6 +291,23 @@ const engine = new BABYLON.Engine(canvas, !IS_IOS, { preserveDrawingBuffer: true
 // context during boot.
 engine.setHardwareScalingLevel(IS_IOS ? 1 : 1 / Math.min(window.devicePixelRatio || 1, 2));
 
+// If anything throws while we're still on the LOADING… screen, surface it ON the
+// screen — otherwise a device-specific boot failure (often iOS-only) just leaves
+// the progress bar frozen at 0% with no clue why. This turns a silent hang into a
+// readable message we can act on.
+function reportBootError(msg) {
+  const ls = document.getElementById('loadingScreen');
+  const t = document.getElementById('loadingPct');
+  if (t && ls && !ls.classList.contains('hidden')) {
+    t.style.color = '#ff7a7a';
+    t.style.whiteSpace = 'pre-wrap';
+    t.textContent = '⚠️ 読み込みエラー\n' + msg;
+  }
+}
+window.addEventListener('error', e => reportBootError((e && e.message) || 'script error'));
+window.addEventListener('unhandledrejection', e =>
+  reportBootError((e && e.reason && (e.reason.message || e.reason)) || 'promise rejection'));
+
 // ---------- config ----------
 const LANE_W = 15, LANE_H = 9, Y_CENTER = 7;     // wider play area
 const SPAWN_AHEAD = 120, RECYCLE_BEHIND = 16, NUM_OBSTACLES = 26;
@@ -405,15 +422,21 @@ function createScene() {
   dragonGlow = new BABYLON.PointLight("dglow", new BABYLON.Vector3(0, Y_CENTER, 0), scene);
   dragonGlow.diffuse = new BABYLON.Color3(1.0, 0.6, 0.25); dragonGlow.intensity = 1.2; dragonGlow.range = 26;
 
-  const gl = new BABYLON.GlowLayer("glow", scene); gl.intensity = 0.35;   // subtle bloom on lava cracks / fire — kept low so it doesn't wash the magma stage white
-
-  setupPipeline();
-  buildSky(); buildTunnel(); buildWarp(); buildGates();
-
+  // Set up the dragon's transform hierarchy and START the (network-bound) character
+  // model downloads BEFORE the heavy GPU work below. The loading bar is driven by
+  // these model loads completing, so if any GPU step throws on a constrained device
+  // (iOS especially) the bar still progresses and the error gets surfaced — instead
+  // of the screen sitting silently at 0%.
   dragonRoot = new BABYLON.TransformNode("dragonRoot", scene);
   dragonBank = new BABYLON.TransformNode("dragonBank", scene); dragonBank.parent = dragonRoot;     // roll/pitch (world frame)
   dragonFacing = new BABYLON.TransformNode("dragonFacing", scene); dragonFacing.parent = dragonBank; // constant yaw
   dragonFacing.rotation.y = DRAGON_YAW;
+  loadCharacters();
+
+  const gl = new BABYLON.GlowLayer("glow", scene); gl.intensity = 0.35;   // subtle bloom on lava cracks / fire — kept low so it doesn't wash the magma stage white
+
+  setupPipeline();
+  buildSky(); buildTunnel(); buildWarp(); buildGates();
 
   loadSkies();
   buildStageMaterials();
@@ -422,7 +445,6 @@ function createScene() {
 
   buildFireTrail();
   buildHeals();
-  loadCharacters();
   buildObstacles(false);   // boxes until models ready
   return scene;
 }
@@ -1797,9 +1819,14 @@ $('shutterBtn').onclick = capturePhoto;
 // ---------- boot ----------
 quickPlay = location.hash.indexOf('play') >= 0;
 selectedCharIndex = Math.max(0, CHARACTERS.findIndex(c => c.id === getSelectedCharId()));
-createScene();
-renderCharPicker();
-renderBest();
+try {
+  createScene();
+  renderCharPicker();
+  renderBest();
+} catch (e) {
+  console.error('boot failed', e);
+  reportBootError((e && (e.stack || e.message)) || String(e));
+}
 // hard fallback: never get stuck on the loading screen even if an asset stalls
 setTimeout(() => { if (phase === 'loading') maybeBeginIntro(true); }, 15000);
 let last = performance.now();
