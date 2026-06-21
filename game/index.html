@@ -257,10 +257,39 @@ window.addEventListener('unhandledrejection', function (e) {
 if (typeof BABYLON === 'undefined') window.__showBoot('3Dライブラリ(babylon.js)を読み込めませんでした。');
 /* ---- PWA: service worker registration + install prompt ---------------- */
 (function setupPWA() {
-  // Register the service worker for offline play / installability.
+  // Register the service worker for offline play / installability, and make sure
+  // a freshly deployed version actually takes over instead of the old cached code
+  // lingering until the user manually clears it.
   if ('serviceWorker' in navigator) {
+    // If a SW was already controlling this page, a controller swap means a new
+    // version just activated — reload once so the page runs the new code.
+    if (navigator.serviceWorker.controller) {
+      let reloading = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (reloading) return;
+        reloading = true;
+        window.location.reload();
+      });
+    }
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').catch((e) => console.warn('SW register failed', e));
+      navigator.serviceWorker.register('./sw.js').then((reg) => {
+        reg.update();   // check for a newer sw.js on every launch
+        // also re-check whenever the tab/app is brought back to the foreground
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') reg.update();
+        });
+        // when a new worker finishes installing behind the current one, let it
+        // skip waiting so it activates immediately (then controllerchange reloads)
+        reg.addEventListener('updatefound', () => {
+          const sw = reg.installing;
+          if (!sw) return;
+          sw.addEventListener('statechange', () => {
+            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+              sw.postMessage('SKIP_WAITING');
+            }
+          });
+        });
+      }).catch((e) => console.warn('SW register failed', e));
     });
   }
 
@@ -344,6 +373,11 @@ function reportBootError(msg) {
 // ---------- config ----------
 const LANE_W = 15, LANE_H = 9, Y_CENTER = 7;     // wider play area
 const SPAWN_AHEAD = 120, RECYCLE_BEHIND = 16, NUM_OBSTACLES = 26;
+// iOS can't afford all 7 models' geometry+textures at once (WebGL context loss),
+// but it CAN handle a handful loaded one-at-a-time. Cap the total model count on
+// iOS so enemies are real characters instead of plain boxes, while staying inside
+// the GPU budget. (player model + up to IOS_MAX_MODELS-1 distinct enemy models)
+const IOS_MAX_MODELS = 4;
 const BASE_SPEED = 30, MAX_SPEED = BASE_SPEED * 3.4;
 // Very Hard Mode: unlocked once the best score reaches this distance. It starts
 // at 3x speed and ramps up to 6x, and is always played on the subspace-like
@@ -711,29 +745,44 @@ function normalizeImported(meshes, root, targetSize) {
 // Load every character once into a disabled holder. Each holder is reused both
 // as the player model (cloned under dragonFacing) and, for non-dragon ones, as a
 // flying obstacle — so nothing is loaded twice.
+function importCharacter(i) {
+  const char = CHARACTERS[i];
+  return BABYLON.SceneLoader.ImportMeshAsync("", char.dir, char.file, scene).then(res => {
+    const root = res.meshes[0];
+    normalizeImported(res.meshes, root, char.size);
+    root.rotation = BABYLON.Vector3.Zero();
+    brighten(res.meshes, char.id === 'dragon' ? DRAGON_BRIGHT : ENEMY_BRIGHT);
+    const holder = new BABYLON.TransformNode("ctmpl_" + char.id, scene);
+    root.parent = holder; holder.setEnabled(false);
+    charTemplates[i] = { holder, char };
+    console.log("[char] loaded", char.file);
+    assetLoaded();
+  }).catch(err => { console.warn("char load failed", char.file, err); assetLoaded(); });
+}
+
 function loadCharacters() {
   // iOS Safari loses the WebGL context if we import all 7 models' geometry + their
-  // embedded textures at once — it blows the GPU budget and gl.createBuffer() starts
-  // returning null ("Unable to create vertex buffer"), freezing boot. There, load
-  // ONLY the player's chosen model; the enemies fall back to the built-in box
-  // obstacles, which keeps the game playable instead of stuck on the loader.
+  // embedded textures at ONCE — it blows the GPU budget and gl.createBuffer() starts
+  // returning null ("Unable to create vertex buffer"), freezing boot.
+  //
+  // It survives a smaller set loaded ONE AT A TIME, though, so on iOS we still bring
+  // in real enemy models (the player's pick + a few distinct enemies, capped at
+  // IOS_MAX_MODELS) instead of falling back to plain boxes — just loaded
+  // sequentially so we never allocate several models' buffers in the same frame.
   let indices = CHARACTERS.map((_, i) => i);
-  if (IS_IOS) indices = [selectedCharIndex];
+  if (IS_IOS) {
+    indices = [selectedCharIndex];
+    for (let i = 0; i < CHARACTERS.length && indices.length < IOS_MAX_MODELS; i++) {
+      if (CHARACTERS[i].enemy && indices.indexOf(i) < 0) indices.push(i);
+    }
+  }
   assetsTotal = indices.length;
-  indices.forEach(i => {
-    const char = CHARACTERS[i];
-    BABYLON.SceneLoader.ImportMeshAsync("", char.dir, char.file, scene).then(res => {
-      const root = res.meshes[0];
-      normalizeImported(res.meshes, root, char.size);
-      root.rotation = BABYLON.Vector3.Zero();
-      brighten(res.meshes, char.id === 'dragon' ? DRAGON_BRIGHT : ENEMY_BRIGHT);
-      const holder = new BABYLON.TransformNode("ctmpl_" + char.id, scene);
-      root.parent = holder; holder.setEnabled(false);
-      charTemplates[i] = { holder, char };
-      console.log("[char] loaded", char.file);
-      assetLoaded();
-    }).catch(err => { console.warn("char load failed", char.file, err); assetLoaded(); });
-  });
+  if (IS_IOS) {
+    // chain the imports so each finishes before the next begins
+    indices.reduce((p, i) => p.then(() => importCharacter(i)), Promise.resolve());
+  } else {
+    indices.forEach(i => importCharacter(i));
+  }
 }
 
 // Non-dragon characters that have finished loading, used to populate obstacles.
@@ -763,7 +812,7 @@ function setPlayerCharacter(index) {
 
 // All models in — finalise obstacles, build the player, then begin the intro.
 function onAllAssetsLoaded() {
-  buildObstacles(!IS_IOS);   // iOS keeps the lightweight box obstacles (only the player model is loaded)
+  buildObstacles(obstacleTemplates().length > 0);   // real models when any enemy loaded; boxes only as a last resort
   setPlayerCharacter(selectedCharIndex);
   dragonReady = true;
   maybeBeginIntro(false);
