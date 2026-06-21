@@ -69,6 +69,32 @@
   .char-chip.sel { background: linear-gradient(90deg,#ff8a33,#ff2f5d); border-color: transparent; color:#fff; font-weight:800; box-shadow:0 5px 16px rgba(255,80,60,.42); }
   .mode-chip.vhard { color:#ff9aa8; border-color: rgba(255,60,90,.4); }
   .mode-chip.vhard.sel { background: linear-gradient(90deg,#7a0bd6,#c4002b); box-shadow:0 5px 18px rgba(180,0,60,.55); color:#fff; }
+  /* locked characters: shown as a mystery chip until unlocked by a glowing item */
+  .char-chip.locked { opacity:.6; cursor:not-allowed; color:#8d97a8; letter-spacing:.06em; }
+  .char-chip.locked:hover { transform:none; background:rgba(255,255,255,.07); border-color:rgba(255,255,255,.14); }
+
+  /* unlock reveal on the game-over screen */
+  #unlockReveal { margin-top:16px; padding:14px 14px 16px; border-radius:16px;
+    background: radial-gradient(ellipse at 50% 30%, rgba(255,205,90,.22), rgba(255,140,40,.05));
+    border:1px solid rgba(255,205,100,.42); animation: unlockPop .6s ease-out; }
+  #unlockReveal.hidden { display:none; }
+  #unlockReveal .ur-title { font-size:15px; font-weight:800; color:#ffd24a; letter-spacing:.04em;
+    text-shadow:0 0 16px rgba(255,180,60,.75); }
+  .unlock-chars { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-top:10px; }
+  .unlock-char { display:flex; flex-direction:column; align-items:center; gap:3px; animation: unlockChar .7s ease-out both; }
+  .unlock-char .uc-emoji { font-size:44px; line-height:1; filter: drop-shadow(0 0 14px rgba(255,185,65,.85)); }
+  .unlock-char .uc-name { font-size:13px; font-weight:800; color:#fff; }
+  @keyframes unlockPop { 0%{transform:scale(.7);opacity:0} 60%{transform:scale(1.06)} 100%{transform:scale(1);opacity:1} }
+  @keyframes unlockChar { 0%{transform:scale(0) rotate(-28deg);opacity:0} 70%{transform:scale(1.25) rotate(8deg)} 100%{transform:scale(1) rotate(0);opacity:1} }
+
+  /* help / instructions overlay */
+  #helpScreen .panel { text-align:left; max-width:min(520px,92vw); }
+  #helpScreen h2 { text-align:center; }
+  .help-list { margin-top:8px; }
+  .help-row { display:flex; gap:11px; align-items:flex-start; margin:11px 0; }
+  .help-row .hi { font-size:22px; flex:0 0 auto; width:30px; text-align:center; line-height:1.3; }
+  .help-row .ht { font-size:13px; color:#c7d0de; line-height:1.65; }
+  .help-row .ht b { color:#fff; }
 
   #hud { position: fixed; top: 0; left: 0; right: 0; z-index: 15; display: flex; justify-content: space-between; align-items: flex-start;
          padding: calc(12px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 12px calc(16px + env(safe-area-inset-left)); pointer-events: none; }
@@ -188,6 +214,7 @@
     <button class="btn" id="startBtn">▶ スタート</button>
     <p class="hint">スワイプで移動・指を離すと停止 / モデルはドラッグで回転</p>
     <div class="actions">
+      <button class="btn btn-sec" id="helpBtn">📖 あそびかた</button>
       <button class="btn btn-sec btn-photo" id="photoBtn">📸 フォト</button>
       <button class="btn btn-sec" id="shareBtn">📤 共有</button>
       <button class="btn btn-sec btn-card" id="cardBtn">🎴 カード</button>
@@ -204,6 +231,10 @@
     <div class="big" id="finalDist">0 m</div>
     <p id="newRecord" class="hidden" style="color:#46ff8c;font-weight:800;font-size:15px">🎉 自己ベスト更新！</p>
     <p id="bestDist" style="color:#ffd27a">🏆 自己ベスト 0 m</p>
+    <div id="unlockReveal" class="hidden">
+      <p class="ur-title">🎉 あたらしい仲間が解放された！</p>
+      <div class="unlock-chars" id="unlockChars"></div>
+    </div>
     <button class="btn" id="retryBtn">↻ もう一度</button>
     <div class="actions">
       <button class="btn btn-sec" id="shareBtn2">📤 アプリを共有</button>
@@ -220,6 +251,20 @@
     <div class="actions">
       <button class="btn btn-sec" id="toMenuBtn">🏠 メニューに戻る</button>
     </div>
+  </div>
+</div>
+
+<div id="helpScreen" class="overlay hidden">
+  <div class="panel">
+    <h2>📖 あそびかた</h2>
+    <div class="help-list">
+      <div class="help-row"><span class="hi">🕹️</span><span class="ht"><b>そうさ：</b>画面をスワイプしてドラゴンを上下左右に移動。指を離すと止まります。PCでは矢印キー／WASDでも動かせます。メニューのモデルはドラッグで回転できます。</span></div>
+      <div class="help-row"><span class="hi">💥</span><span class="ht"><b>ルール：</b>敵に3回ぶつかるとゲームオーバー。<b>💚</b>を取ると体力が1つ回復します。</span></div>
+      <div class="help-row"><span class="hi">✨</span><span class="ht"><b>かくしキャラ：</b>プレイ中にまれに<b>かがやくアイテム</b>が出現！取るとランダムでキャラクターが1体解放されます。解放はずっと記憶されます。</span></div>
+      <div class="help-row"><span class="hi">🏆</span><span class="ht"><b>スコア：</b>進んだ距離がスコアです。自己ベストの更新を目指そう！</span></div>
+      <div class="help-row"><span class="hi">⏸</span><span class="ht"><b>一時停止：</b>プレイ中に右上のボタン（PCは <kbd>P</kbd> または <kbd>Esc</kbd>）。</span></div>
+    </div>
+    <button class="btn" id="helpCloseBtn">▶ とじる</button>
   </div>
 </div>
 
@@ -460,6 +505,7 @@ let hemiLight, dirLight, fillLight;
 let tunnelFloors = [], tunnelCeils = [], stageSkies = [], skybox, skyMat, streakMat = null;
 let currentStageIndex = -1, stageTgt = STAGES[0];
 let obstacles = [], heals = [], gates = [], streaks = [];
+let unlockItem = null;            // the rare glowing collectible that unlocks a character
 let charTemplates = [];           // loaded model holders, indexed to match CHARACTERS
 let dragonModelRoot = null;       // the ACTIVE player model (a clone under dragonFacing)
 let selectedCharIndex = 0;        // which CHARACTERS entry the player flies as
@@ -479,6 +525,8 @@ let quickPlay = false;
 let veryHard = false;             // current run uses Very Hard Mode (3→6x, subspace)
 let lives = 3, distance = 0, speed = BASE_SPEED, invuln = 0, shake = 0, camRoll = 0, dodgeCombo = 0, comboTimer = 0;
 let nextHealAt = 600;
+let nextUnlockCheck = 800;         // distance of the next chance to roll for the glowing item
+let unlockedThisRun = [];          // character indices unlocked during the current run (for the game-over reveal)
 let runStartBest = 0, beatBestFired = false;   // best at the start of this run + whether we've celebrated beating it
 let target = { x: 0, y: Y_CENTER };
 const keys = {};
@@ -548,6 +596,8 @@ function createScene() {
   buildFireTrail();
   bootStep = 'buildHeals';
   buildHeals();
+  bootStep = 'buildUnlockItem';
+  buildUnlockItem();
   bootStep = 'buildObstacles';
   buildObstacles(false);   // boxes until models ready
   bootStep = 'done';
@@ -899,6 +949,22 @@ function buildHeals() {
   }
 }
 
+// The rare glowing item: a golden, shimmering star that, when collected, unlocks
+// a random locked character. Built once and reused.
+function buildUnlockItem() {
+  const h = BABYLON.MeshBuilder.CreatePolyhedron("unlk", { type: 2, size: 1.15 }, scene);
+  const m = new BABYLON.StandardMaterial("unlkm", scene);
+  m.emissiveColor = new BABYLON.Color3(1.0, 0.85, 0.3); m.diffuseColor = new BABYLON.Color3(0.95, 0.78, 0.25);
+  m.specularColor = new BABYLON.Color3(1, 1, 0.9); h.material = m;
+  const ring = BABYLON.MeshBuilder.CreateTorus("unlkr", { diameter: 3.6, thickness: 0.18, tessellation: 32 }, scene);
+  const rm = new BABYLON.StandardMaterial("unlkrm", scene); rm.emissiveColor = new BABYLON.Color3(1.0, 0.9, 0.4); rm.disableLighting = true;
+  ring.material = rm; ring.parent = h;
+  attachHalo(h, 6.0);   // bright golden aura so it reads as a special, shining pickup
+  h.metadata = { active: false, ring, mat: m };
+  h.setEnabled(false);
+  unlockItem = h;
+}
+
 function makeBox(i) {
   const COL = [[0.95,0.16,0.18],[0.98,0.55,0.10],[0.13,0.48,0.92],[0.16,0.72,0.34],[0.99,0.84,0.16],[0.66,0.26,0.86]];
   const m = BABYLON.MeshBuilder.CreateBox("obs"+i, { size: 2.2 }, scene);
@@ -944,6 +1010,15 @@ function activateHeal() {
   h.position.z = distance + SPAWN_AHEAD;
 }
 
+function activateUnlockItem() {
+  if (!unlockItem || unlockItem.metadata.active) return;
+  unlockItem.metadata.active = true; unlockItem.setEnabled(true);
+  unlockItem.position.x = (Math.random()*2-1) * (LANE_W - 2);
+  unlockItem.position.y = Y_CENTER + (Math.random()*2-1) * (LANE_H - 2);
+  unlockItem.position.z = distance + SPAWN_AHEAD;
+  flashCombo('✨ かがやくアイテム出現！');
+}
+
 // ---------- start-screen model showcase ----------
 function makeLabel(text) {
   const dt = new BABYLON.DynamicTexture("lbl", { width: 768, height: 160 }, scene, true);
@@ -957,22 +1032,34 @@ function makeLabel(text) {
   return p;
 }
 
+// Tear down + rebuild the showcase ring so it reflects the current unlock state
+// (e.g. a character unlocked during the last run now joins the menu lineup).
+function rebuildShowcase() {
+  if (showcaseRoot) { showcaseRoot.dispose(); showcaseRoot = null; }
+  showcaseItems = [];
+  showcaseBuilt = false;
+  buildShowcase();
+}
 function buildShowcase() {
   if (showcaseBuilt) return;
   showcaseBuilt = true;
   showcaseRoot = new BABYLON.TransformNode("showcaseRoot", scene);
   const C = SHOWCASE_CENTER();
 
+  // only loaded AND unlocked characters appear on the menu carousel — locked ones
+  // stay a surprise until earned via the glowing item
   const sources = [];
   charTemplates.forEach((t, i) => {
-    if (!t) return;
+    if (!t || !isCharUnlocked(CHARACTERS[i].id)) return;
     sources.push({ node: t.holder, name: CHARACTERS[i].name, charIndex: i, yaw: i === 0 ? DRAGON_YAW : 0 });
   });
 
   const n = sources.length;
   sources.forEach((src, i) => {
     const theta = (i / n) * Math.PI * 2;
-    const R = 9.5;
+    // a lone unlocked character (e.g. just the dragon at the start) sits dead
+    // center instead of orbiting off to one side
+    const R = n <= 1 ? 0 : 9.5;
     const pivot = new BABYLON.TransformNode("scp"+i, scene);
     pivot.parent = showcaseRoot;
     pivot.position.set(C.x + Math.sin(theta)*R, C.y, C.z + Math.cos(theta)*R);
@@ -1008,7 +1095,7 @@ function setShowcaseHighlight(index) {
 
 function enterMenu() {
   phase = 'menu';
-  buildShowcase();
+  rebuildShowcase();
   if (showcaseRoot) showcaseRoot.setEnabled(true);
   dragonRoot.setEnabled(false);
   dragonBank.rotation.set(0,0,0);
@@ -1058,7 +1145,7 @@ function renderPhotoPicker() {
   const el = $('photoRoster'); if (!el) return;
   el.innerHTML = '';
   CHARACTERS.forEach((c, i) => {
-    if (!charTemplates[i]) return;
+    if (!charTemplates[i] || !isCharUnlocked(c.id)) return;   // only loaded + unlocked
     const chip = document.createElement('button');
     chip.type = 'button';
     chip.className = 'char-chip' + (i === selectedCharIndex ? ' sel' : '');
@@ -1117,7 +1204,7 @@ function enterPhotoMode() {
 
   // stash + hide the whole running world so only the posed model + camera remain
   photoSaved = { fogMode: scene.fogMode, clear: scene.clearColor.clone(), skybox: skybox && skybox.isEnabled(), hidden: [] };
-  [].concat(tunnelTiles, obstacles, streaks, gates, heals).forEach(m => {
+  [].concat(tunnelTiles, obstacles, streaks, gates, heals, unlockItem ? [unlockItem] : []).forEach(m => {
     if (!m) return; photoSaved.hidden.push([m, m.isEnabled()]); m.setEnabled(false);
   });
   if (skybox) skybox.setEnabled(false);
@@ -1232,6 +1319,9 @@ async function capturePhoto() {
 function resetGame() {
   lives = 3; distance = 0; speed = BASE_SPEED * (veryHard ? VHARD_START_MULT : 1); invuln = 0; shake = 0; camRoll = 0; dodgeCombo = 0; comboTimer = 0;
   nextHealAt = 500 + Math.random()*400;
+  nextUnlockCheck = 800 + Math.random()*600;
+  unlockedThisRun = [];
+  if (unlockItem) { unlockItem.metadata.active = false; unlockItem.setEnabled(false); }
   runStartBest = getBest(); beatBestFired = false;   // remember the bar to beat + reset the celebration latch
   target = { x: 0, y: Y_CENTER };
   pointerDown = false; dragVX = dragVY = 0;
@@ -1262,6 +1352,24 @@ function gameOver() {
   if (isNew) { saveBest(d); launchConfetti(72); }
   $('newRecord').classList.toggle('hidden', !isNew);
   $('bestDist').textContent = '🏆 自己ベスト ' + getBest().toLocaleString() + ' m';
+  // celebrate any characters unlocked this run with a reveal + confetti
+  const ur = $('unlockReveal');
+  if (unlockedThisRun.length) {
+    const box = $('unlockChars'); box.innerHTML = '';
+    unlockedThisRun.forEach((i, k) => {
+      const c = CHARACTERS[i];
+      const el = document.createElement('div');
+      el.className = 'unlock-char';
+      el.style.animationDelay = (0.15 + k*0.18) + 's';
+      el.innerHTML = '<span class="uc-emoji">' + (c.emoji || '✨') + '</span>' +
+                     '<span class="uc-name">' + c.name + '</span>';
+      box.appendChild(el);
+    });
+    ur.classList.remove('hidden');
+    launchConfetti(90);
+  } else {
+    ur.classList.add('hidden');
+  }
   $('overScreen').classList.remove('hidden');
 }
 // ---------- pause ----------
@@ -1354,6 +1462,24 @@ function pickupHeal(h) {
   $('healfx').style.opacity = 1; setTimeout(() => $('healfx').style.opacity = 0, 220);
   if (lives < 3) { lives++; flashToast('💚 +1 LIFE', '#46ff8c'); }
   else flashToast('💚 MAX', '#46ff8c');
+  updateHud();
+}
+function pickupUnlockItem() {
+  unlockItem.metadata.active = false; unlockItem.setEnabled(false);
+  if (sparkBurst) sparkBurst.manualEmitCount = 300;
+  if (pipeline) pipeline.chromaticAberration.aberrationAmount = 35;
+  const f = $('bestfx'); f.style.opacity = 1; setTimeout(() => f.style.opacity = 0, 500);
+  const idx = unlockRandomCharacter();
+  if (idx >= 0) {
+    unlockedThisRun.push(idx);
+    flashToast('✨ 新しい仲間を解放！', '#ffd24a');
+    flashCombo('🎁 ゲームオーバー画面でチェック！');
+    launchConfetti(48);
+  } else {
+    // everyone's already unlocked — make the rare item still worthwhile
+    if (lives < 3) { lives++; flashToast('✨ ボーナス +1 LIFE', '#ffd24a'); }
+    else flashToast('✨ ボーナス！', '#ffd24a');
+  }
   updateHud();
 }
 
@@ -1460,6 +1586,27 @@ function update(dt) {
     }
   }
 
+  // rare glowing item: roll for it at spaced-out checkpoints, but only while there
+  // are still locked characters to win. The low per-check chance keeps it special.
+  if (unlockItem && !unlockItem.metadata.active && distance >= nextUnlockCheck) {
+    nextUnlockCheck = distance + 700 + Math.random()*700;
+    if (lockedCharIndices(false).length && Math.random() < 0.2) activateUnlockItem();
+  }
+  if (unlockItem && unlockItem.metadata.active) {
+    unlockItem.rotation.y += dt*2.6; unlockItem.metadata.ring.rotation.z += dt*1.8;
+    const s = 1 + Math.sin(tms*0.007)*0.16; unlockItem.scaling.set(s,s,s);
+    // shimmer the emissive through warm gold tones so it visibly "shines"
+    const g = 0.7 + Math.sin(tms*0.012)*0.3; unlockItem.metadata.mat.emissiveColor.set(1.0, g, 0.25 + 0.15*Math.sin(tms*0.02));
+    if (unlockItem.position.z < dragZ - 6) { unlockItem.metadata.active = false; unlockItem.setEnabled(false); }
+    else {
+      const dz = unlockItem.position.z - dragZ;
+      if (Math.abs(dz) < 2.4) {
+        const dx = unlockItem.position.x - dragonRoot.position.x, dy = unlockItem.position.y - dragonRoot.position.y;
+        if (dx*dx + dy*dy < 6.5) pickupUnlockItem();
+      }
+    }
+  }
+
   const gc = stageTgt.gate;
   for (const g of gates) {
     if (g.position.z < dragZ - 8) g.position.z += 520;
@@ -1557,23 +1704,72 @@ function saveSelectedCharId(id) {
   document.cookie = CHAR_COOKIE + '=' + encodeURIComponent(id) + ';max-age=315360000;path=/;SameSite=Lax';
 }
 
+// ---------- character unlocks (cookie) ----------
+// The dragon (index 0) is always playable; every other character starts LOCKED
+// and is unlocked by grabbing a rare glowing item mid-run. The unlocked set is
+// remembered in a cookie as a comma-separated list of character ids.
+const UNLOCK_COOKIE = 'dragondash_unlocked';
+function getUnlockedIds() {
+  const ids = ['dragon'];   // the dragon is unlocked from the start
+  const m = document.cookie.match(/(?:^|;\s*)dragondash_unlocked=([^;]+)/);
+  if (m) decodeURIComponent(m[1]).split(',').forEach(v => {
+    if (v && CHARACTERS.some(c => c.id === v) && ids.indexOf(v) < 0) ids.push(v);
+  });
+  return ids;
+}
+function saveUnlockedIds(ids) {
+  document.cookie = UNLOCK_COOKIE + '=' + encodeURIComponent(ids.join(',')) + ';max-age=315360000;path=/;SameSite=Lax';
+}
+function isCharUnlocked(id) { return getUnlockedIds().indexOf(id) >= 0; }
+// Indices of still-locked characters. `loadedOnly` restricts to ones whose model
+// has actually finished loading (matters on iOS, which loads a capped subset) so
+// an unlocked character is always one the player can really fly.
+function lockedCharIndices(loadedOnly) {
+  const u = getUnlockedIds();
+  return CHARACTERS
+    .map((c, i) => i)
+    .filter(i => u.indexOf(CHARACTERS[i].id) < 0 && (!loadedOnly || charTemplates[i]));
+}
+// Unlock one random locked character and persist it. Returns its index, or -1 if
+// nothing was left to unlock.
+function unlockRandomCharacter() {
+  let pool = lockedCharIndices(true);
+  if (!pool.length) pool = lockedCharIndices(false);   // fall back to any locked id
+  if (!pool.length) return -1;
+  const idx = pool[Math.floor(Math.random() * pool.length)];
+  const ids = getUnlockedIds(); ids.push(CHARACTERS[idx].id); saveUnlockedIds(ids);
+  return idx;
+}
+
 // Build the tappable character chips on the start screen. The currently-selected
 // one is highlighted; tapping another swaps the player model live + remembers it.
 function renderCharPicker() {
   const el = $('roster'); el.innerHTML = '';
   CHARACTERS.forEach((c, i) => {
+    const unlocked = isCharUnlocked(c.id);
     const chip = document.createElement('button');
     chip.type = 'button';
-    chip.className = 'chip char-chip' + (i === selectedCharIndex ? ' sel' : '');
-    chip.textContent = (c.emoji ? c.emoji + ' ' : '') + c.name;
     chip.dataset.idx = i;
     chip.addEventListener('pointerup', e => e.stopPropagation());   // don't trigger tap-to-start
-    chip.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); selectCharacter(i); });
+    if (unlocked) {
+      chip.className = 'chip char-chip' + (i === selectedCharIndex ? ' sel' : '');
+      chip.textContent = (c.emoji ? c.emoji + ' ' : '') + c.name;
+      chip.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); selectCharacter(i); });
+    } else {
+      // mystery chip — the character is revealed only once it's unlocked
+      chip.className = 'chip char-chip locked';
+      chip.textContent = '🔒 ？？？';
+      chip.addEventListener('click', e => {
+        e.stopPropagation(); e.preventDefault();
+        notify('🔒 プレイ中の ✨かがやくアイテム を取ると解放できるよ！');
+      });
+    }
     el.appendChild(chip);
   });
 }
 function selectCharacter(i) {
   if (!charTemplates[i]) return;   // model not loaded yet
+  if (!isCharUnlocked(CHARACTERS[i].id)) return;   // still locked
   selectedCharIndex = i;
   saveSelectedCharId(CHARACTERS[i].id);
   setPlayerCharacter(i);
@@ -1972,6 +2168,15 @@ function bindAction(id, fn) {
   el.addEventListener('pointerup', e => e.stopPropagation());
   el.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); fn(); });
 }
+// ---------- help / instructions overlay ----------
+function openHelp() { $('helpScreen').classList.remove('hidden'); }
+function closeHelp() { $('helpScreen').classList.add('hidden'); }
+bindAction('helpBtn', openHelp);
+$('helpCloseBtn').addEventListener('pointerup', e => e.stopPropagation());
+$('helpCloseBtn').onclick = e => { e.stopPropagation(); closeHelp(); };
+// tapping the dimmed backdrop (outside the panel) also closes it
+$('helpScreen').addEventListener('click', e => { if (e.target === $('helpScreen')) closeHelp(); });
+
 bindAction('modeNormal', () => selectMode(false));
 bindAction('modeVhard', () => selectMode(true));
 bindAction('shareBtn', shareApp);
@@ -1988,6 +2193,9 @@ $('shutterBtn').onclick = capturePhoto;
 // ---------- boot ----------
 quickPlay = location.hash.indexOf('play') >= 0;
 selectedCharIndex = Math.max(0, CHARACTERS.findIndex(c => c.id === getSelectedCharId()));
+// never boot flying a character that isn't unlocked (e.g. a stale cookie) — the
+// dragon is always available
+if (!isCharUnlocked(CHARACTERS[selectedCharIndex].id)) selectedCharIndex = 0;
 try {
   createScene();
   renderCharPicker();
