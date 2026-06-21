@@ -531,15 +531,24 @@ function buildSky() {
   skybox.material = skyMat;
 }
 function loadSkies() {
-  // Shrink the cube-texture resolution hard on iOS to stay inside its texture-memory
-  // budget — three IBL skyboxes at 1024 was a major contributor to the boot hang /
-  // lost context. They're dim, blurred backdrops, so 256 reads fine.
-  const SKY_SIZE = IS_IOS ? 256 : 1024;
+  // iOS Safari is the source of the persistent "Unable to create vertex buffer"
+  // boot failure. Both EquiRectangularCubeTexture and HDRCubeTexture(prefilterOnLoad)
+  // run a GPU pass (equirect→cubemap / IBL prefilter = a full-screen quad, i.e. a
+  // vertex buffer) AFTER the image downloads — inside the texture's async load
+  // callback. Under iOS's tight GPU budget gl.createBuffer() returns null there, and
+  // because the throw happens in that async callback it escapes every try/catch
+  // (surfacing via window.onerror as "@line 1") and freezes the loader. Shrinking the
+  // textures wasn't enough — the conversion pass itself is what fails. So on iOS we
+  // skip the image-based skyboxes entirely: the per-stage clearColor (driven by
+  // setStageTint) becomes the background and the scene stays lit by the
+  // hemispheric/directional lights. Less scenic, but it boots reliably.
+  if (IS_IOS) { if (skybox) skybox.setEnabled(false); return; }
+  const SKY_SIZE = 1024;
   // 1st マグマだまり: volcanic-cavern panorama (smoky ceiling + glowing molten horizon)
   stageSkies[0] = new BABYLON.EquiRectangularCubeTexture("./assets/sky/magma.jpg", scene, SKY_SIZE);
   // 2nd 岩の草原: partly-cloudy blue sky (Poly Haven "kloofendal_48d_partly_cloudy_puresky", CC0)
   // args: url, scene, size, noMipmap=false, generateHarmonics=true, gammaSpace=false, prefilterOnLoad=true
-  stageSkies[1] = new BABYLON.HDRCubeTexture("./assets/sky/grass.hdr", scene, IS_IOS ? 128 : 512, false, true, false, true);
+  stageSkies[1] = new BABYLON.HDRCubeTexture("./assets/sky/grass.hdr", scene, 512, false, true, false, true);
   // 3rd 宇宙空間: real all-sky Milky Way panorama (ESO/S.Brunier, CC BY 4.0)
   stageSkies[2] = new BABYLON.EquiRectangularCubeTexture("./assets/sky/space.jpg", scene, SKY_SIZE);
   stageSkies.forEach(t => { t.coordinatesMode = BABYLON.Texture.SKYBOX_MODE; });
