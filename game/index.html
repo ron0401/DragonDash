@@ -82,13 +82,27 @@
   #lives { font-size: clamp(20px, 5.5vw, 26px); letter-spacing: 3px; }
   #speed { font-size: 13px; font-weight:800; color: #ffb070; margin-top: 5px; text-align: right; letter-spacing:.06em; transition: color .2s; }
   #speed.boost { color:#ff4d6d; text-shadow:0 0 12px rgba(255,77,109,.8); }
+  #pauseBtn { pointer-events: auto; align-self: flex-start; margin-top: 2px; width: 46px; height: 46px; flex: 0 0 auto;
+    display: flex; align-items: center; justify-content: center; font-size: 20px; line-height: 1; color: #fff; cursor: pointer;
+    background: rgba(8,12,22,.5); border: 1px solid rgba(255,255,255,.12); border-radius: 14px; backdrop-filter: blur(6px);
+    box-shadow: 0 6px 18px rgba(0,0,0,.35); transition: transform .12s, background .12s; touch-action: manipulation; }
+  #pauseBtn:hover { background: rgba(18,26,46,.7); transform: scale(1.06); }
+  #pauseBtn:active { transform: scale(.96); }
   #combo { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index:15; color:#ffd27a; font-size:15px; font-weight:800; opacity:0; transition:opacity .3s; pointer-events:none; letter-spacing:.1em;}
   #toast { position: fixed; top: 46%; left: 50%; transform: translate(-50%,-50%) scale(.6); z-index: 16; font-size: 38px; font-weight: 900; text-shadow: 0 4px 20px rgba(0,0,0,.6); opacity: 0; transition: opacity .15s, transform .15s; pointer-events: none; white-space:nowrap; }
   /* menu (start screen) shown over the live 3D showcase */
-  #startScreen.menu { background: linear-gradient(to top, rgba(3,5,11,.8), rgba(3,5,11,.15) 32%, transparent 58%); backdrop-filter: none; pointer-events: none; justify-content: flex-end; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
-  #startScreen.menu .panel { pointer-events: auto; padding: 16px 30px 20px; max-width: min(720px, 95vw); overflow: visible; }
-  #startScreen.menu .panel h1 { font-size: 30px; margin-bottom: 2px; }
-  #startScreen.menu .panel p { margin: 3px 0; }
+  #startScreen.menu { background: linear-gradient(to top, rgba(3,5,11,.85), rgba(3,5,11,.2) 36%, transparent 62%); backdrop-filter: none; pointer-events: none; justify-content: flex-end;
+    padding-top: calc(10px + env(safe-area-inset-top)); padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+  /* keep the whole card inside the viewport and let it scroll internally, so the
+     スタート / secondary buttons can never overflow off-screen on small phones */
+  #startScreen.menu .panel { pointer-events: auto; padding: 14px 22px 16px; width: 100%; max-width: min(560px, 94vw);
+    max-height: 100%; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+  #startScreen.menu .panel h1 { font-size: 26px; margin-bottom: 2px; }
+  #startScreen.menu .panel p { margin: 2px 0; }
+  #startScreen.menu .panel .btn { margin-top: 12px; }
+  .lead { color:#ff9a6a; font-weight:600; }
+  .best { color:#ffd27a; font-weight:700; margin-top:8px !important; }
+  .hint { font-size:12px; color:#8d97a8; margin-top:8px !important; }
   .drag-hint { font-size: 13px; color: #9fe0ff; margin-top: 6px; }
   .spinner { width:56px; height:56px; margin:0 auto; border-radius:50%; border:5px solid rgba(255,255,255,.15); border-top-color:#ff7a33; border-right-color:#ff3d5d; animation:spin .85s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -139,6 +153,7 @@
 
 <div id="hud" class="hidden">
   <div class="hud-box" id="dist">DISTANCE<b>0 m</b><i id="bestPct"></i></div>
+  <button id="pauseBtn" aria-label="一時停止">⏸</button>
   <div class="hud-box" style="text-align:right">
     <div id="lives">❤️❤️❤️</div>
     <div id="speed">SPEED 1.0x</div>
@@ -159,27 +174,26 @@
 <div id="startScreen" class="overlay menu hidden">
   <div class="panel">
     <h1>🐉 DRAGON DASH</h1>
-    <p style="color:#ff9a6a">敵に3回ぶつかるとゲームオーバー。緑の💚で体力回復！</p>
-    <p class="drag-hint">🖐️ モデルをドラッグでグリグリ ・ ピンチでズーム</p>
-    <p class="picker-label">▼ プレイキャラクターを選ぼう（次回のオープニングにも登場）</p>
+    <p class="lead">敵に3回ぶつかるとゲームオーバー ・ 💚で回復</p>
+    <p class="picker-label">▼ キャラクターを選ぶ</p>
     <div class="roster" id="roster"></div>
-    <p id="menuBest" style="color:#ffd27a">🏆 自己ベスト 0 m</p>
     <div id="modePicker" class="hidden">
-      <p class="picker-label">▼ モードを選ぼう</p>
+      <p class="picker-label">▼ モード</p>
       <div class="roster">
         <button class="char-chip mode-chip sel" id="modeNormal">🐉 ノーマル</button>
-        <button class="char-chip mode-chip vhard" id="modeVhard">💀 VERY HARD（3→6倍速・亜空間）</button>
+        <button class="char-chip mode-chip vhard" id="modeVhard">💀 VERY HARD</button>
       </div>
     </div>
-    <div class="keys">操作 : <b>スワイプした方向へ動き続けます</b>・指を戻すか離すと停止（マウスはドラッグ）</div>
-    <button class="btn" id="startBtn">▶ スタート / タップで開始</button>
+    <p id="menuBest" class="best">🏆 自己ベスト 0 m</p>
+    <button class="btn" id="startBtn">▶ スタート</button>
+    <p class="hint">スワイプで移動・指を離すと停止 / モデルはドラッグで回転</p>
     <div class="actions">
-      <button class="btn btn-sec btn-photo" id="photoBtn">📸 フォトモード</button>
-      <button class="btn btn-sec" id="shareBtn">📤 アプリを共有</button>
-      <button class="btn btn-sec btn-card" id="cardBtn">🎴 カードを保存</button>
+      <button class="btn btn-sec btn-photo" id="photoBtn">📸 フォト</button>
+      <button class="btn btn-sec" id="shareBtn">📤 共有</button>
+      <button class="btn btn-sec btn-card" id="cardBtn">🎴 カード</button>
     </div>
-    <button class="btn btn-install hidden" id="installBtn">📲 アプリとしてインストール</button>
-    <p class="install-hint hidden" id="iosInstallHint">📲 ホーム画面に追加：共有ボタン <b>􀈂</b> →「ホーム画面に追加」</p>
+    <button class="btn btn-install hidden" id="installBtn">📲 インストール</button>
+    <p class="install-hint hidden" id="iosInstallHint">📲 ホーム画面に追加：共有 <b>􀈂</b> →「ホーム画面に追加」</p>
   </div>
 </div>
 
@@ -194,6 +208,17 @@
     <div class="actions">
       <button class="btn btn-sec" id="shareBtn2">📤 アプリを共有</button>
       <button class="btn btn-sec btn-score" id="scoreImgBtn">🖼️ スコア画像をダウンロード</button>
+    </div>
+  </div>
+</div>
+
+<div id="pauseScreen" class="overlay hidden">
+  <div class="panel">
+    <h2>⏸ 一時停止</h2>
+    <p>ひと休み中…</p>
+    <button class="btn" id="resumeBtn">▶ 続ける</button>
+    <div class="actions">
+      <button class="btn btn-sec" id="toMenuBtn">🏠 メニューに戻る</button>
     </div>
   </div>
 </div>
@@ -257,10 +282,39 @@ window.addEventListener('unhandledrejection', function (e) {
 if (typeof BABYLON === 'undefined') window.__showBoot('3Dライブラリ(babylon.js)を読み込めませんでした。');
 /* ---- PWA: service worker registration + install prompt ---------------- */
 (function setupPWA() {
-  // Register the service worker for offline play / installability.
+  // Register the service worker for offline play / installability, and make sure
+  // a freshly deployed version actually takes over instead of the old cached code
+  // lingering until the user manually clears it.
   if ('serviceWorker' in navigator) {
+    // If a SW was already controlling this page, a controller swap means a new
+    // version just activated — reload once so the page runs the new code.
+    if (navigator.serviceWorker.controller) {
+      let reloading = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (reloading) return;
+        reloading = true;
+        window.location.reload();
+      });
+    }
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').catch((e) => console.warn('SW register failed', e));
+      navigator.serviceWorker.register('./sw.js').then((reg) => {
+        reg.update();   // check for a newer sw.js on every launch
+        // also re-check whenever the tab/app is brought back to the foreground
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') reg.update();
+        });
+        // when a new worker finishes installing behind the current one, let it
+        // skip waiting so it activates immediately (then controllerchange reloads)
+        reg.addEventListener('updatefound', () => {
+          const sw = reg.installing;
+          if (!sw) return;
+          sw.addEventListener('statechange', () => {
+            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+              sw.postMessage('SKIP_WAITING');
+            }
+          });
+        });
+      }).catch((e) => console.warn('SW register failed', e));
     });
   }
 
@@ -344,6 +398,11 @@ function reportBootError(msg) {
 // ---------- config ----------
 const LANE_W = 15, LANE_H = 9, Y_CENTER = 7;     // wider play area
 const SPAWN_AHEAD = 120, RECYCLE_BEHIND = 16, NUM_OBSTACLES = 26;
+// iOS can't afford all 7 models' geometry+textures at once (WebGL context loss),
+// but it CAN handle a handful loaded one-at-a-time. Cap the total model count on
+// iOS so enemies are real characters instead of plain boxes, while staying inside
+// the GPU budget. (player model + up to IOS_MAX_MODELS-1 distinct enemy models)
+const IOS_MAX_MODELS = 4;
 const BASE_SPEED = 30, MAX_SPEED = BASE_SPEED * 3.4;
 // Very Hard Mode: unlocked once the best score reaches this distance. It starts
 // at 3x speed and ramps up to 6x, and is always played on the subspace-like
@@ -711,29 +770,44 @@ function normalizeImported(meshes, root, targetSize) {
 // Load every character once into a disabled holder. Each holder is reused both
 // as the player model (cloned under dragonFacing) and, for non-dragon ones, as a
 // flying obstacle — so nothing is loaded twice.
+function importCharacter(i) {
+  const char = CHARACTERS[i];
+  return BABYLON.SceneLoader.ImportMeshAsync("", char.dir, char.file, scene).then(res => {
+    const root = res.meshes[0];
+    normalizeImported(res.meshes, root, char.size);
+    root.rotation = BABYLON.Vector3.Zero();
+    brighten(res.meshes, char.id === 'dragon' ? DRAGON_BRIGHT : ENEMY_BRIGHT);
+    const holder = new BABYLON.TransformNode("ctmpl_" + char.id, scene);
+    root.parent = holder; holder.setEnabled(false);
+    charTemplates[i] = { holder, char };
+    console.log("[char] loaded", char.file);
+    assetLoaded();
+  }).catch(err => { console.warn("char load failed", char.file, err); assetLoaded(); });
+}
+
 function loadCharacters() {
   // iOS Safari loses the WebGL context if we import all 7 models' geometry + their
-  // embedded textures at once — it blows the GPU budget and gl.createBuffer() starts
-  // returning null ("Unable to create vertex buffer"), freezing boot. There, load
-  // ONLY the player's chosen model; the enemies fall back to the built-in box
-  // obstacles, which keeps the game playable instead of stuck on the loader.
+  // embedded textures at ONCE — it blows the GPU budget and gl.createBuffer() starts
+  // returning null ("Unable to create vertex buffer"), freezing boot.
+  //
+  // It survives a smaller set loaded ONE AT A TIME, though, so on iOS we still bring
+  // in real enemy models (the player's pick + a few distinct enemies, capped at
+  // IOS_MAX_MODELS) instead of falling back to plain boxes — just loaded
+  // sequentially so we never allocate several models' buffers in the same frame.
   let indices = CHARACTERS.map((_, i) => i);
-  if (IS_IOS) indices = [selectedCharIndex];
+  if (IS_IOS) {
+    indices = [selectedCharIndex];
+    for (let i = 0; i < CHARACTERS.length && indices.length < IOS_MAX_MODELS; i++) {
+      if (CHARACTERS[i].enemy && indices.indexOf(i) < 0) indices.push(i);
+    }
+  }
   assetsTotal = indices.length;
-  indices.forEach(i => {
-    const char = CHARACTERS[i];
-    BABYLON.SceneLoader.ImportMeshAsync("", char.dir, char.file, scene).then(res => {
-      const root = res.meshes[0];
-      normalizeImported(res.meshes, root, char.size);
-      root.rotation = BABYLON.Vector3.Zero();
-      brighten(res.meshes, char.id === 'dragon' ? DRAGON_BRIGHT : ENEMY_BRIGHT);
-      const holder = new BABYLON.TransformNode("ctmpl_" + char.id, scene);
-      root.parent = holder; holder.setEnabled(false);
-      charTemplates[i] = { holder, char };
-      console.log("[char] loaded", char.file);
-      assetLoaded();
-    }).catch(err => { console.warn("char load failed", char.file, err); assetLoaded(); });
-  });
+  if (IS_IOS) {
+    // chain the imports so each finishes before the next begins
+    indices.reduce((p, i) => p.then(() => importCharacter(i)), Promise.resolve());
+  } else {
+    indices.forEach(i => importCharacter(i));
+  }
 }
 
 // Non-dragon characters that have finished loading, used to populate obstacles.
@@ -763,7 +837,7 @@ function setPlayerCharacter(index) {
 
 // All models in — finalise obstacles, build the player, then begin the intro.
 function onAllAssetsLoaded() {
-  buildObstacles(!IS_IOS);   // iOS keeps the lightweight box obstacles (only the player model is loaded)
+  buildObstacles(obstacleTemplates().length > 0);   // real models when any enemy loaded; boxes only as a last resort
   setPlayerCharacter(selectedCharIndex);
   dragonReady = true;
   maybeBeginIntro(false);
@@ -1190,6 +1264,25 @@ function gameOver() {
   $('bestDist').textContent = '🏆 自己ベスト ' + getBest().toLocaleString() + ' m';
   $('overScreen').classList.remove('hidden');
 }
+// ---------- pause ----------
+function pauseGame() {
+  if (phase !== 'playing') return;
+  phase = 'paused';
+  endPointer();                       // drop any in-progress swipe so the dragon holds still
+  $('pauseScreen').classList.remove('hidden');
+}
+function resumeGame() {
+  if (phase !== 'paused') return;
+  $('pauseScreen').classList.add('hidden');
+  last = performance.now();           // avoid a big dt jump on the first resumed frame
+  phase = 'playing';
+}
+function quitToMenu() {
+  $('pauseScreen').classList.add('hidden');
+  $('hud').classList.add('hidden');
+  $('fx').style.opacity = 0;
+  enterMenu();
+}
 function updateHud() {
   $('dist').innerHTML = 'DISTANCE<b>' + Math.floor(distance).toLocaleString() + ' m</b><i id="bestPct"></i>';
   // show how far we are vs. the best (only when a best exists)
@@ -1518,11 +1611,16 @@ addEventListener('keydown', e => {
     if (k === 'escape') exitPhotoMode();
     return;   // photo mode owns input; don't start a run from here
   }
+  if (k === 'escape' || k === 'p') {
+    if (phase === 'playing') pauseGame();
+    else if (phase === 'paused') resumeGame();
+  }
   if ((k === ' ' || k === 'enter')) {
     if (phase === 'intro') { introT = INTRO_DUR; }
     else if (phase === 'menu' || phase === 'over') {
       startGame();
     }
+    else if (phase === 'paused') { resumeGame(); }
   }
   if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
 });
@@ -1561,11 +1659,17 @@ addEventListener('pointercancel', endPointer);
 // block long-press context menu / iOS callout so dragging feels native
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
-// tap-to-start: anywhere on the menu / game-over screens (buttons still work too)
+// tap-to-start on the game-over screen (buttons still work too). The menu does NOT
+// start on a stray tap — the panel is full of controls (character / mode pickers),
+// so a deliberate press of the スタート button is required there to avoid mis-starts.
 const tapStart = e => { e.preventDefault(); startGame(); };
-$('startScreen').addEventListener('pointerup', e => { if (phase === 'menu') tapStart(e); });
 $('overScreen').addEventListener('pointerup', e => { if (phase === 'over') tapStart(e); });
 $('startBtn').onclick = startGame; $('retryBtn').onclick = startGame;
+// pause controls (stopPropagation so the tap doesn't fall through to the canvas swipe)
+$('pauseBtn').addEventListener('pointerup', e => e.stopPropagation());
+$('pauseBtn').onclick = e => { e.stopPropagation(); pauseGame(); };
+$('resumeBtn').onclick = resumeGame;
+$('toMenuBtn').onclick = quitToMenu;
 
 // ---------- share + greeting card ----------
 const SHARE_URL = 'https://ron0401.github.io/DragonDash/game/';
