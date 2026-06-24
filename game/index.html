@@ -1349,7 +1349,7 @@ function gameOver() {
   $('finalDist').textContent = d.toLocaleString() + ' m';
   const prevBest = getBest();
   const isNew = d > prevBest && d > 0;
-  if (isNew) { saveBest(d); launchConfetti(72); }
+  if (isNew) { saveBest(d); launchConfetti(28); }
   $('newRecord').classList.toggle('hidden', !isNew);
   $('bestDist').textContent = '🏆 自己ベスト ' + getBest().toLocaleString() + ' m';
   // celebrate any characters unlocked this run with a reveal + confetti
@@ -1440,12 +1440,12 @@ function launchConfetti(n) {
 }
 // Fired the instant the player overtakes their previous best, mid-run.
 function celebrateNewBest() {
-  if (sparkBurst) sparkBurst.manualEmitCount = 520;
-  if (pipeline) pipeline.chromaticAberration.aberrationAmount = 35;
+  if (sparkBurst) sparkBurst.manualEmitCount = 180;
+  if (pipeline) pipeline.chromaticAberration.aberrationAmount = 16;
   flashToast('🎉 自己ベスト更新！', '#ffd24a');
   flashCombo('🏆 NEW RECORD!');
-  launchConfetti(64);
-  const f = $('bestfx'); f.style.opacity = 1; setTimeout(() => f.style.opacity = 0, 600);
+  launchConfetti(22);
+  const f = $('bestfx'); f.style.opacity = 0.5; setTimeout(() => f.style.opacity = 0, 500);
 }
 function hit() {
   lives--; invuln = INVULN_TIME; shake = 0.9; dodgeCombo = 0;
