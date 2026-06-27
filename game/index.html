@@ -1555,14 +1555,15 @@ function resetGame() {
   nextUnlockCheck = 350 + Math.random()*300;
   unlockedThisRun = [];
   if (unlockItem) { unlockItem.metadata.active = false; unlockItem.setEnabled(false); }
-  // reset 必殺技 state + clear any leftover VFX from a prior run
-  hasSpecial = false; specialActive = 0; cineT = 0;
-  nextSpecialCheck = 600 + Math.random()*500;
+  // reset 必殺技 state + clear any leftover VFX from a prior run.
+  // start every run with one ultimate already charged so it's usable from the off.
+  hasSpecial = true; specialActive = 0; cineT = 0;
+  nextSpecialCheck = 300 + Math.random()*250;
   if (specialItem) { specialItem.metadata.active = false; specialItem.setEnabled(false); }
   if (specialAura) specialAura.emitRate = 0;
   if (auraRing) auraRing.setEnabled(false);
   if (dragonGlow) { dragonGlow.diffuse.set(1.0, 0.6, 0.25); dragonGlow.intensity = 1.2; }
-  $('specialBtn').classList.remove('show');
+  $('specialBtn').classList.add('show');
   $('specialfx').classList.remove('on');
   $('cinefx').classList.remove('on');
   $('specialTimer').classList.remove('show');
@@ -1940,11 +1941,12 @@ function update(dt) {
     }
   }
 
-  // 必殺技 item: roll at spaced checkpoints. Only offer one when the player has no
-  // charged ultimate and isn't already invincible / mid-cinematic — keeps it rare.
+  // 必殺技 item: roll at checkpoints. Only offer one when the player has no charged
+  // ultimate and isn't already invincible / mid-cinematic. Spawns are frequent so a
+  // new one shows up soon after you use the last; a missed roll re-checks quickly.
   if (specialItem && !specialItem.metadata.active && !hasSpecial && specialActive <= 0 && cineT <= 0 && distance >= nextSpecialCheck) {
-    nextSpecialCheck = distance + 700 + Math.random()*500;
-    if (Math.random() < 0.5) activateSpecialItem();
+    if (Math.random() < 0.85) { activateSpecialItem(); nextSpecialCheck = distance + 450 + Math.random()*350; }
+    else nextSpecialCheck = distance + 150;   // missed: try again very soon
   }
   if (specialItem && specialItem.metadata.active) {
     specialItem.rotation.y += dt*2.4; specialItem.metadata.ring.rotation.z += dt*2.2; specialItem.metadata.ring2.rotation.y += dt*2.6;
