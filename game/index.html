@@ -49,6 +49,22 @@
   .btn-install:hover { box-shadow: 0 16px 38px rgba(60,120,255,.55); }
   .install-hint { margin-top: 12px; font-size: 12px; color: #9fb4d6; line-height: 1.7; }
   .install-hint b { color: #cfe0ff; font-size: 14px; }
+  /* step-by-step "Add to Home Screen" guide shown by the install overlay */
+  #installScreen .panel { text-align:left; max-width:min(460px,92vw); }
+  #installScreen h2 { text-align:center; color:#7ab6ff; }
+  #installScreen .lead { text-align:center; }
+  #installScreen .btn { display:block; margin:18px auto 0; }
+  .install-steps { margin-top:14px; }
+  .install-note { margin-top:12px; padding:11px 13px; border-radius:12px; font-size:13px; line-height:1.7;
+        background:rgba(255,170,60,.12); border:1px solid rgba(255,170,60,.35); color:#ffd9a3; }
+  .install-step { display:flex; gap:11px; align-items:flex-start; margin:12px 0; }
+  .install-step .sn { flex:0 0 auto; width:26px; height:26px; border-radius:50%; font-size:13px; font-weight:800;
+        display:flex; align-items:center; justify-content:center; color:#fff;
+        background:linear-gradient(90deg,#2f9bff,#7a5cff); box-shadow:0 4px 12px rgba(60,120,255,.4); }
+  .install-step .st { font-size:14px; color:#c7d0de; line-height:1.6; padding-top:2px; }
+  .install-step .st b { color:#fff; }
+  .ios-share-icon { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px;
+        vertical-align:-5px; margin:0 2px; border-radius:5px; background:rgba(122,182,255,.22); color:#9fd0ff; }
   /* secondary action row: share + greeting-card download */
   .actions { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:12px; }
   .btn-sec { margin-top:0; font-size:15px; padding:12px 22px; min-height:46px; background: linear-gradient(90deg,#16c47f,#0fa36b); box-shadow: 0 10px 24px rgba(20,180,120,.35); }
@@ -220,7 +236,18 @@
       <button class="btn btn-sec btn-card" id="cardBtn">🎴 カード</button>
     </div>
     <button class="btn btn-install hidden" id="installBtn">📲 インストール</button>
-    <p class="install-hint hidden" id="iosInstallHint">📲 ホーム画面に追加：共有 <b>􀈂</b> →「ホーム画面に追加」</p>
+  </div>
+</div>
+
+<!-- How-to-install overlay. Shown when the install button is tapped on iOS (where
+     there is no programmatic install) or inside an in-app browser. The body is
+     filled in by setupPWA() to match the user's actual environment. -->
+<div id="installScreen" class="overlay hidden">
+  <div class="panel">
+    <h2>📲 ホーム画面に追加</h2>
+    <p class="lead">ホーム画面に追加すると、次からはアイコンをタップするだけですぐに遊べます。</p>
+    <div id="installSteps" class="install-steps"></div>
+    <button class="btn" id="installCloseBtn">とじる</button>
   </div>
 </div>
 
@@ -364,7 +391,9 @@ if (typeof BABYLON === 'undefined') window.__showBoot('3Dライブラリ(babylon
   }
 
   const installBtn = document.getElementById('installBtn');
-  const iosHint = document.getElementById('iosInstallHint');
+  const installScreen = document.getElementById('installScreen');
+  const installSteps = document.getElementById('installSteps');
+  const installCloseBtn = document.getElementById('installCloseBtn');
   let deferredPrompt = null;
 
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
@@ -372,6 +401,61 @@ if (typeof BABYLON === 'undefined') window.__showBoot('3Dライブラリ(babylon
                        window.navigator.standalone === true;
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
                 (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  // iOS Safari exposes navigator.standalone (a boolean); iOS in-app web views
+  // (LINE / Instagram / X / Facebook etc.) leave it undefined. Those in-app
+  // browsers can't add to the home screen at all — the user has to reopen the
+  // page in Safari first. Detect them so we can say exactly that.
+  const isIOSInApp = isIOS && (typeof navigator.standalone === 'undefined' ||
+                     /Line|FBAN|FBAV|Instagram|Twitter|MicroMessenger|KAKAOTALK/i.test(navigator.userAgent));
+
+  // Inline SVG of the iOS share glyph (a box with an up-arrow) so the steps read
+  // correctly everywhere — the old SF-Symbol private-use codepoint rendered as
+  // tofu on non-Apple fonts.
+  const shareIcon = '<span class="ios-share-icon" aria-label="共有">' +
+    '<svg width="13" height="15" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<path d="M12 2L7 7M12 2l5 5M12 2v16" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<path d="M5 12H3v13h18V12h-2" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '</svg></span>';
+
+  function steps(rows) {
+    return rows.map((r, i) =>
+      `<div class="install-step"><span class="sn">${i + 1}</span><span class="st">${r}</span></div>`
+    ).join('');
+  }
+
+  // Build the instruction body to match where the user actually is.
+  function fillInstallSteps() {
+    if (!installSteps) return;
+    if (isIOSInApp) {
+      // In-app browser: must move to Safari before any home-screen install works.
+      installSteps.innerHTML =
+        '<div class="install-note">いま開いているアプリ内のブラウザでは、ホーム画面に追加できません。まず <b>Safari</b> で開きなおしてください。</div>' +
+        steps([
+          '画面の右下にある <b>コンパス（Safari）のアイコン</b>、または右上の「<b>…</b>」から<b>「Safariで開く」</b>を選びます。',
+          'Safari で開いたら、もう一度この <b>📲 インストール</b> ボタンを押してください。',
+        ]);
+    } else if (isIOS) {
+      // Real iOS Safari: the manual Add-to-Home-Screen flow.
+      installSteps.innerHTML = steps([
+        `画面の下にある<b>共有ボタン</b> ${shareIcon} をタップします。`,
+        'メニューを下にスクロールして<b>「ホーム画面に追加」</b>をタップします。',
+        '右上の<b>「追加」</b>をタップすると完了です。',
+        'ホーム画面に追加されたドラゴンのアイコンから、次回以降すぐに遊べます。',
+      ]);
+    } else {
+      // Other browsers without a captured prompt (e.g. desktop / Android in-app).
+      installSteps.innerHTML =
+        '<div class="install-note">お使いのブラウザの<b>メニュー</b>から「アプリをインストール」または「ホーム画面に追加」を選んでください。</div>';
+    }
+  }
+
+  function openInstallHelp() {
+    fillInstallSteps();
+    if (installScreen) installScreen.classList.remove('hidden');
+  }
+  function closeInstallHelp() {
+    if (installScreen) installScreen.classList.add('hidden');
+  }
 
   // Android / desktop Chromium: capture the install prompt and show our button.
   window.addEventListener('beforeinstallprompt', (e) => {
@@ -380,31 +464,49 @@ if (typeof BABYLON === 'undefined') window.__showBoot('3Dライブラリ(babylon
     if (installBtn) installBtn.classList.remove('hidden');
   });
 
+  // On iOS (and iOS in-app browsers) there is no beforeinstallprompt, so the
+  // button would otherwise never appear. Show it as long as we're not already
+  // running as an installed app — tapping it opens the how-to overlay.
+  if (installBtn && isIOS && !isStandalone) {
+    installBtn.classList.remove('hidden');
+  }
+
   if (installBtn) {
     // Don't let the tap bubble to the start screen's tap-to-start handler.
     installBtn.addEventListener('pointerup', e => e.stopPropagation());
     installBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      if (!deferredPrompt) return;
-      deferredPrompt.prompt();
-      try { await deferredPrompt.userChoice; } catch (_) {}
-      deferredPrompt = null;
-      installBtn.classList.add('hidden');
+      if (deferredPrompt) {
+        // Chromium path: fire the real OS install prompt.
+        deferredPrompt.prompt();
+        try { await deferredPrompt.userChoice; } catch (_) {}
+        deferredPrompt = null;
+        installBtn.classList.add('hidden');
+      } else {
+        // iOS / no prompt available: explain how to install by hand.
+        openInstallHelp();
+      }
+    });
+  }
+
+  if (installCloseBtn) {
+    installCloseBtn.addEventListener('pointerup', e => e.stopPropagation());
+    installCloseBtn.addEventListener('click', (e) => { e.stopPropagation(); closeInstallHelp(); });
+  }
+  if (installScreen) {
+    // Tap the dark backdrop (outside the panel) to dismiss.
+    installScreen.addEventListener('pointerup', e => e.stopPropagation());
+    installScreen.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (e.target === installScreen) closeInstallHelp();
     });
   }
 
   window.addEventListener('appinstalled', () => {
     deferredPrompt = null;
     if (installBtn) installBtn.classList.add('hidden');
-    if (iosHint) iosHint.classList.add('hidden');
+    closeInstallHelp();
   });
-
-  // iOS Safari has no beforeinstallprompt — show manual "Add to Home Screen" hint.
-  if (isIOS && !isStandalone && iosHint) {
-    iosHint.classList.remove('hidden');
-    // Tapping the hint text shouldn't trigger tap-to-start either.
-    iosHint.addEventListener('pointerup', e => e.stopPropagation());
-  }
 })();
 /* ---------------------------------------------------------------------- */
 
