@@ -626,8 +626,8 @@ let bootStep = 'start';   // which createScene() step is running, for boot-error
 let quickPlay = false;
 let veryHard = false;             // current run uses Very Hard Mode (3→6x, subspace)
 let lives = 3, distance = 0, speed = BASE_SPEED, invuln = 0, shake = 0, camRoll = 0, dodgeCombo = 0, comboTimer = 0;
-let nextHealAt = 600;
-let nextUnlockCheck = 800;         // distance of the next chance to roll for the glowing item
+let nextHealAt = 350;
+let nextUnlockCheck = 400;         // distance of the next chance to roll for the glowing item
 let unlockedThisRun = [];          // character indices unlocked during the current run (for the game-over reveal)
 let runStartBest = 0, beatBestFired = false;   // best at the start of this run + whether we've celebrated beating it
 let target = { x: 0, y: Y_CENTER };
@@ -1037,7 +1037,7 @@ function buildFireTrail() {
 }
 
 function buildHeals() {
-  for (let i = 0; i < 2; i++) {
+  for (let i = 0; i < 3; i++) {
     const h = BABYLON.MeshBuilder.CreatePolyhedron("heal"+i, { type: 1, size: 1.0 }, scene); // octahedron
     const m = new BABYLON.StandardMaterial("hm"+i, scene);
     m.emissiveColor = new BABYLON.Color3(0.15, 0.95, 0.4); m.diffuseColor = new BABYLON.Color3(0.1,0.6,0.25);
@@ -1420,8 +1420,8 @@ async function capturePhoto() {
 // ---------- game flow ----------
 function resetGame() {
   lives = 3; distance = 0; speed = BASE_SPEED * (veryHard ? VHARD_START_MULT : 1); invuln = 0; shake = 0; camRoll = 0; dodgeCombo = 0; comboTimer = 0;
-  nextHealAt = 500 + Math.random()*400;
-  nextUnlockCheck = 800 + Math.random()*600;
+  nextHealAt = 300 + Math.random()*250;
+  nextUnlockCheck = 350 + Math.random()*300;
   unlockedThisRun = [];
   if (unlockItem) { unlockItem.metadata.active = false; unlockItem.setEnabled(false); }
   runStartBest = getBest(); beatBestFired = false;   // remember the bar to beat + reset the celebration latch
@@ -1675,7 +1675,7 @@ function update(dt) {
   }
 
   // heal spawn + pickup
-  if (distance >= nextHealAt) { activateHeal(); nextHealAt = distance + 700 + Math.random()*700; }
+  if (distance >= nextHealAt) { activateHeal(); nextHealAt = distance + 420 + Math.random()*380; }
   for (const h of heals) {
     if (!h.metadata.active) continue;
     h.rotation.y += dt*2.0; h.metadata.ring.rotation.z += dt*1.5;
@@ -1691,8 +1691,8 @@ function update(dt) {
   // rare glowing item: roll for it at spaced-out checkpoints, but only while there
   // are still locked characters to win. The low per-check chance keeps it special.
   if (unlockItem && !unlockItem.metadata.active && distance >= nextUnlockCheck) {
-    nextUnlockCheck = distance + 700 + Math.random()*700;
-    if (lockedCharIndices(false).length && Math.random() < 0.2) activateUnlockItem();
+    nextUnlockCheck = distance + 420 + Math.random()*380;
+    if (lockedCharIndices(false).length && Math.random() < 0.55) activateUnlockItem();
   }
   if (unlockItem && unlockItem.metadata.active) {
     unlockItem.rotation.y += dt*2.6; unlockItem.metadata.ring.rotation.z += dt*1.8;
