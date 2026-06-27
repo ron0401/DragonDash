@@ -27,6 +27,21 @@
         background: radial-gradient(ellipse at 50% 50%, transparent 45%, rgba(40,255,120,.4) 100%); }
   #bestfx { position: fixed; inset: 0; z-index: 12; pointer-events: none; opacity: 0; transition: opacity .35s;
         background: radial-gradient(ellipse at 50% 45%, rgba(255,215,90,.45) 0%, rgba(255,170,50,.18) 35%, transparent 65%); }
+  /* 無敵中(必殺技)の全画面オーラ — 虹色に脈動するビネット */
+  #specialfx { position: fixed; inset: 0; z-index: 12; pointer-events: none; opacity: 0; transition: opacity .3s;
+        background: radial-gradient(ellipse 80% 70% at 50% 50%, transparent 46%, rgba(90,200,255,.22) 78%, rgba(150,90,255,.42) 100%);
+        mix-blend-mode: screen; }
+  #specialfx.on { opacity: 1; animation: specialPulse 1.0s ease-in-out infinite; }
+  @keyframes specialPulse { 0%,100%{filter:hue-rotate(0deg) brightness(1)} 50%{filter:hue-rotate(120deg) brightness(1.45)} }
+  /* 必殺技発動の演出(時間停止)用オーバーレイ — 周囲を暗く落としてモデルに集中させる */
+  #cinefx { position: fixed; inset: 0; z-index: 13; pointer-events: none; opacity: 0; transition: opacity .4s;
+        background: radial-gradient(ellipse 42% 52% at 50% 52%, transparent 30%, rgba(2,4,12,.55) 72%, rgba(1,2,8,.9) 100%); }
+  #cinefx.on { opacity: 1; }
+  /* 発動の瞬間の白フラッシュ */
+  #specialFlash { position: fixed; inset: 0; z-index: 14; pointer-events: none; opacity: 0;
+        background: radial-gradient(circle at 50% 52%, rgba(180,235,255,.95), rgba(150,90,255,.5) 45%, transparent 75%); }
+  #specialFlash.fire { opacity: 1; transition: none; }
+  #specialFlash.fade { opacity: 0; transition: opacity .5s; }
   .confetti-piece { position: fixed; top: -8vh; z-index: 30; pointer-events: none; will-change: transform, opacity;
         animation: confettiFall linear forwards; }
   @keyframes confettiFall { 0% { transform: translateY(0) rotate(0deg); opacity: 1; }
@@ -131,6 +146,26 @@
   #pauseBtn:hover { background: rgba(18,26,46,.7); transform: scale(1.06); }
   #pauseBtn:active { transform: scale(.96); }
   #combo { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index:15; color:#ffd27a; font-size:15px; font-weight:800; opacity:0; transition:opacity .3s; pointer-events:none; letter-spacing:.1em;}
+  /* 必殺技ボタン — アイテム取得後にだけ出現する画面下中央の大きな発動ボタン */
+  #specialBtn { position: fixed; left: 50%; bottom: calc(26px + env(safe-area-inset-bottom)); transform: translateX(-50%) scale(.4);
+    z-index: 16; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    width: 96px; height: 96px; border-radius: 50%; cursor: pointer; pointer-events: auto; touch-action: manipulation;
+    color:#fff; border: 2px solid rgba(255,255,255,.85);
+    background: radial-gradient(circle at 50% 35%, #ffe27a 0%, #ff5db0 42%, #7a3cff 100%);
+    box-shadow: 0 0 26px rgba(180,90,255,.8), 0 8px 26px rgba(0,0,0,.45); }
+  #specialBtn .sb-icon { font-size: 30px; line-height: 1; filter: drop-shadow(0 1px 3px rgba(0,0,0,.5)); }
+  #specialBtn .sb-label { font-size: 13px; font-weight: 900; letter-spacing: .04em; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
+  #specialBtn.show { display: flex; animation: sbPop .45s cubic-bezier(.2,1.4,.5,1) forwards, sbGlow 1.1s ease-in-out .45s infinite; }
+  #specialBtn:active { filter: brightness(1.15); }
+  @keyframes sbPop { to { transform: translateX(-50%) scale(1); } }
+  @keyframes sbGlow { 0%,100%{ box-shadow:0 0 22px rgba(180,90,255,.7), 0 8px 26px rgba(0,0,0,.45);} 50%{ box-shadow:0 0 44px rgba(255,110,200,1), 0 8px 30px rgba(0,0,0,.45);} }
+  /* 無敵タイマー(HUD内) */
+  #specialTimer { display:none; margin-top:6px; }
+  #specialTimer.show { display:block; }
+  #specialTimer .st-txt { font-size:12px; font-weight:800; color:#b9e6ff; letter-spacing:.06em; text-shadow:0 0 10px rgba(120,200,255,.8); text-align:right; }
+  #specialTimer .st-bar { width:96px; height:6px; margin-top:3px; border-radius:4px; background:rgba(255,255,255,.14); overflow:hidden; }
+  #specialTimer .st-bar > i { display:block; height:100%; width:100%; border-radius:4px;
+    background:linear-gradient(90deg,#6ad0ff,#b06bff,#ff6ec7); transition:width .1s linear; }
   #toast { position: fixed; top: 46%; left: 50%; transform: translate(-50%,-50%) scale(.6); z-index: 16; font-size: 38px; font-weight: 900; text-shadow: 0 4px 20px rgba(0,0,0,.6); opacity: 0; transition: opacity .15s, transform .15s; pointer-events: none; white-space:nowrap; }
   /* menu (start screen) shown over the live 3D showcase */
   #startScreen.menu { background: linear-gradient(to top, rgba(3,5,11,.85), rgba(3,5,11,.2) 36%, transparent 62%); backdrop-filter: none; pointer-events: none; justify-content: flex-end;
@@ -192,6 +227,9 @@
 <div id="hitfx"></div>
 <div id="healfx"></div>
 <div id="bestfx"></div>
+<div id="cinefx"></div>
+<div id="specialfx"></div>
+<div id="specialFlash"></div>
 
 <div id="hud" class="hidden">
   <div class="hud-box" id="dist">DISTANCE<b>0 m</b><i id="bestPct"></i></div>
@@ -199,10 +237,12 @@
   <div class="hud-box" style="text-align:right">
     <div id="lives">❤️❤️❤️</div>
     <div id="speed">SPEED 1.0x</div>
+    <div id="specialTimer"><div class="st-txt">⚡ 無敵 10.0s</div><div class="st-bar"><i></i></div></div>
   </div>
 </div>
 <div id="combo"></div>
 <div id="toast"></div>
+<button id="specialBtn" aria-label="必殺技"><span class="sb-icon">⚡</span><span class="sb-label">必殺技</span></button>
 
 <div id="loadingScreen" class="overlay">
   <div class="panel" style="background:transparent;border:none;box-shadow:none">
@@ -288,6 +328,7 @@
       <div class="help-row"><span class="hi">🕹️</span><span class="ht"><b>そうさ：</b>画面をスワイプしてドラゴンを上下左右に移動。指を離すと止まります。PCでは矢印キー／WASDでも動かせます。メニューのモデルはドラッグで回転できます。</span></div>
       <div class="help-row"><span class="hi">💥</span><span class="ht"><b>ルール：</b>敵に3回ぶつかるとゲームオーバー。<b>💚</b>を取ると体力が1つ回復します。</span></div>
       <div class="help-row"><span class="hi">✨</span><span class="ht"><b>かくしキャラ：</b>プレイ中にまれに<b>かがやくアイテム</b>が出現！取るとランダムでキャラクターが1体解放されます。解放はずっと記憶されます。</span></div>
+      <div class="help-row"><span class="hi">⚡</span><span class="ht"><b>必殺技：</b>まれに出る<b>⚡必殺技アイテム</b>を取ると画面下に<b>必殺技ボタン</b>が出現。押すと派手な演出のあと<b>10秒間 無敵</b>に！無敵中に敵へぶつかると敵が<b>粉々</b>に砕けます（PCは <kbd>F</kbd>）。</span></div>
       <div class="help-row"><span class="hi">🏆</span><span class="ht"><b>スコア：</b>進んだ距離がスコアです。自己ベストの更新を目指そう！</span></div>
       <div class="help-row"><span class="hi">⏸</span><span class="ht"><b>一時停止：</b>プレイ中に右上のボタン（PCは <kbd>P</kbd> または <kbd>Esc</kbd>）。</span></div>
     </div>
@@ -556,6 +597,9 @@ const BASE_SPEED = 30, MAX_SPEED = BASE_SPEED * 3.4;
 // (宇宙空間 / DEEP SPACE) stage.
 const VHARD_UNLOCK = 10000, VHARD_START_MULT = 3, VHARD_MAX_MULT = 6, VHARD_STAGE = 2;
 const HIT_Z = 1.8, HIT_R = 1.9, INVULN_TIME = 1.5;
+// 必殺技(ultimate): collect the rare item → press the button → a time-stop
+// cinematic, then SPECIAL_TIME seconds of invincibility that shatters enemies.
+const SPECIAL_TIME = 10, SPECIAL_CINE = 2.8;
 const DRAGON_YAW = -Math.PI / 2;     // facing (yaw 90° right). flip sign if it faces backwards.
 const ROLL_SIGN = -1, PITCH_SIGN = -1; // banking direction. flip a sign if that axis feels reversed.
 const DRAGON_BRIGHT = 0.42, ENEMY_BRIGHT = 0.42;
@@ -608,6 +652,12 @@ let tunnelFloors = [], tunnelCeils = [], stageSkies = [], skybox, skyMat, streak
 let currentStageIndex = -1, stageTgt = STAGES[0];
 let obstacles = [], heals = [], gates = [], streaks = [];
 let unlockItem = null;            // the rare glowing collectible that unlocks a character
+let specialItem = null;           // the rare "必殺技" collectible that charges the ultimate
+let specialAura = null, specialShatter = null, auraRing = null;  // ultimate VFX
+let hasSpecial = false;           // a charged ultimate is ready to fire (button shown)
+let specialActive = 0;            // seconds of invincibility remaining (0 = off)
+let cineT = 0;                    // remaining seconds of the time-stop activation cinematic
+let nextSpecialCheck = 600;       // distance of the next chance to roll for the 必殺技 item
 let charTemplates = [];           // loaded model holders, indexed to match CHARACTERS
 let dragonModelRoot = null;       // the ACTIVE player model (a clone under dragonFacing)
 let selectedCharIndex = 0;        // which CHARACTERS entry the player flies as
@@ -700,6 +750,8 @@ function createScene() {
   buildHeals();
   bootStep = 'buildUnlockItem';
   buildUnlockItem();
+  bootStep = 'buildSpecial';
+  buildSpecialItem(); buildSpecialFX();
   bootStep = 'buildObstacles';
   buildObstacles(false);   // boxes until models ready
   bootStep = 'done';
@@ -1067,6 +1119,68 @@ function buildUnlockItem() {
   unlockItem = h;
 }
 
+// The 必殺技 (ultimate) item: a vivid violet/cyan energy crystal. Collecting it
+// charges the ultimate so the on-screen 必殺技 button appears. Built once, reused.
+function buildSpecialItem() {
+  const h = BABYLON.MeshBuilder.CreatePolyhedron("spc", { type: 3, size: 1.2 }, scene); // icosahedron-ish gem
+  const m = new BABYLON.StandardMaterial("spcm", scene);
+  m.emissiveColor = new BABYLON.Color3(0.7, 0.35, 1.0); m.diffuseColor = new BABYLON.Color3(0.5, 0.3, 0.9);
+  m.specularColor = new BABYLON.Color3(0.9, 0.9, 1.0); h.material = m;
+  // two crossed energy rings so it reads as a powerful, spinning orb
+  const ring = BABYLON.MeshBuilder.CreateTorus("spcr", { diameter: 3.8, thickness: 0.2, tessellation: 36 }, scene);
+  const rm = new BABYLON.StandardMaterial("spcrm", scene); rm.emissiveColor = new BABYLON.Color3(0.4, 0.85, 1.0); rm.disableLighting = true;
+  ring.material = rm; ring.parent = h;
+  const ring2 = BABYLON.MeshBuilder.CreateTorus("spcr2", { diameter: 3.2, thickness: 0.14, tessellation: 32 }, scene);
+  ring2.material = rm; ring2.parent = h; ring2.rotation.x = Math.PI / 2;
+  attachHalo(h, 7.0);
+  h.metadata = { active: false, ring, ring2, mat: m };
+  h.setEnabled(false);
+  specialItem = h;
+}
+
+// VFX for the ultimate: an aura particle system that swirls around the player,
+// a rotating energy ring worn by the model, and a burst system used to shatter
+// enemies on contact while invincible.
+function buildSpecialFX() {
+  const flare = createFlare();
+
+  // aura — energy motes spiralling up around the player (emitRate driven each frame)
+  specialAura = new BABYLON.ParticleSystem("aura", 1400, scene);
+  specialAura.particleTexture = flare; specialAura.emitter = dragonRoot;
+  specialAura.createCylinderEmitter(2.6, 4.2, 0, 0);
+  specialAura.color1 = new BABYLON.Color4(0.55, 0.85, 1.0, 0.9);
+  specialAura.color2 = new BABYLON.Color4(0.85, 0.5, 1.0, 0.9);
+  specialAura.colorDead = new BABYLON.Color4(0.4, 0.3, 1.0, 0.0);
+  specialAura.minSize = 0.25; specialAura.maxSize = 0.95;
+  specialAura.minLifeTime = 0.35; specialAura.maxLifeTime = 0.8;
+  specialAura.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
+  specialAura.direction1 = new BABYLON.Vector3(0, 5, 0); specialAura.direction2 = new BABYLON.Vector3(0, 9, 0);
+  specialAura.minEmitPower = 1; specialAura.maxEmitPower = 3; specialAura.updateSpeed = 0.014;
+  specialAura.emitRate = 0; specialAura.start();
+
+  // a glowing ring the model wears while invincible (clear "それとわかる" marker)
+  auraRing = BABYLON.MeshBuilder.CreateTorus("auraRing", { diameter: 5.4, thickness: 0.22, tessellation: 40 }, scene);
+  const arm = new BABYLON.StandardMaterial("auraRingM", scene);
+  arm.emissiveColor = new BABYLON.Color3(0.5, 0.85, 1.0); arm.disableLighting = true; arm.alpha = 0.9;
+  auraRing.material = arm; auraRing.parent = dragonRoot; auraRing.rotation.x = Math.PI / 2;
+  auraRing.isPickable = false; auraRing.setEnabled(false);
+
+  // shatter burst — emitter is a bare Vector3 we reposition per hit; already-emitted
+  // particles keep their own positions, so one system handles overlapping bursts.
+  specialShatter = new BABYLON.ParticleSystem("shatter", 1200, scene);
+  specialShatter.particleTexture = flare; specialShatter.emitter = new BABYLON.Vector3(0, 0, 0);
+  specialShatter.createSphereEmitter(0.6);
+  specialShatter.color1 = new BABYLON.Color4(1.0, 0.95, 0.7, 1.0);
+  specialShatter.color2 = new BABYLON.Color4(0.7, 0.85, 1.0, 1.0);
+  specialShatter.colorDead = new BABYLON.Color4(0.3, 0.3, 0.4, 0.0);
+  specialShatter.minSize = 0.18; specialShatter.maxSize = 0.7;
+  specialShatter.minLifeTime = 0.4; specialShatter.maxLifeTime = 0.9;
+  specialShatter.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
+  specialShatter.gravity = new BABYLON.Vector3(0, -14, 0);
+  specialShatter.minEmitPower = 8; specialShatter.maxEmitPower = 20; specialShatter.updateSpeed = 0.014;
+  specialShatter.emitRate = 0; specialShatter.start();
+}
+
 function makeBox(i) {
   const COL = [[0.95,0.16,0.18],[0.98,0.55,0.10],[0.13,0.48,0.92],[0.16,0.72,0.34],[0.99,0.84,0.16],[0.66,0.26,0.86]];
   const m = BABYLON.MeshBuilder.CreateBox("obs"+i, { size: 2.2 }, scene);
@@ -1119,6 +1233,23 @@ function activateUnlockItem() {
   unlockItem.position.y = Y_CENTER + (Math.random()*2-1) * (LANE_H - 2);
   unlockItem.position.z = distance + SPAWN_AHEAD;
   flashCombo('✨ かがやくアイテム出現！');
+}
+
+function activateSpecialItem() {
+  if (!specialItem || specialItem.metadata.active) return;
+  specialItem.metadata.active = true; specialItem.setEnabled(true);
+  specialItem.position.x = (Math.random()*2-1) * (LANE_W - 2);
+  specialItem.position.y = Y_CENTER + (Math.random()*2-1) * (LANE_H - 2);
+  specialItem.position.z = distance + SPAWN_AHEAD;
+  flashCombo('⚡ 必殺技アイテム出現！');
+}
+
+// Blow an enemy to pieces at the given world position (used while invincible).
+function shatterObstacle(m) {
+  if (!specialShatter) return;
+  const e = specialShatter.emitter;
+  e.x = m.position.x; e.y = m.position.y; e.z = m.position.z;
+  specialShatter.manualEmitCount = (specialShatter.manualEmitCount || 0) + 90;
 }
 
 // ---------- start-screen model showcase ----------
@@ -1424,6 +1555,17 @@ function resetGame() {
   nextUnlockCheck = 350 + Math.random()*300;
   unlockedThisRun = [];
   if (unlockItem) { unlockItem.metadata.active = false; unlockItem.setEnabled(false); }
+  // reset 必殺技 state + clear any leftover VFX from a prior run
+  hasSpecial = false; specialActive = 0; cineT = 0;
+  nextSpecialCheck = 600 + Math.random()*500;
+  if (specialItem) { specialItem.metadata.active = false; specialItem.setEnabled(false); }
+  if (specialAura) specialAura.emitRate = 0;
+  if (auraRing) auraRing.setEnabled(false);
+  if (dragonGlow) { dragonGlow.diffuse.set(1.0, 0.6, 0.25); dragonGlow.intensity = 1.2; }
+  $('specialBtn').classList.remove('show');
+  $('specialfx').classList.remove('on');
+  $('cinefx').classList.remove('on');
+  $('specialTimer').classList.remove('show');
   runStartBest = getBest(); beatBestFired = false;   // remember the bar to beat + reset the celebration latch
   target = { x: 0, y: Y_CENTER };
   pointerDown = false; dragVX = dragVY = 0;
@@ -1446,6 +1588,9 @@ function startGame() {
 }
 function gameOver() {
   phase = 'over'; $('hud').classList.add('hidden'); $('fx').style.opacity = 0;
+  // clear any active ultimate so its VFX/button don't bleed into the game-over view
+  if (specialActive > 0) endInvincibility();
+  cineT = 0; $('cinefx').classList.remove('on'); $('specialBtn').classList.remove('show');
   if (sparkBurst) sparkBurst.manualEmitCount = 320;
   const d = Math.floor(distance);
   $('finalDist').textContent = d.toLocaleString() + ' m';
@@ -1479,11 +1624,13 @@ function pauseGame() {
   if (phase !== 'playing') return;
   phase = 'paused';
   endPointer();                       // drop any in-progress swipe so the dragon holds still
+  $('specialBtn').classList.remove('show');   // hidden while paused; restored on resume
   $('pauseScreen').classList.remove('hidden');
 }
 function resumeGame() {
   if (phase !== 'paused') return;
   $('pauseScreen').classList.add('hidden');
+  if (hasSpecial && cineT <= 0 && specialActive <= 0) $('specialBtn').classList.add('show');
   last = performance.now();           // avoid a big dt jump on the first resumed frame
   phase = 'playing';
 }
@@ -1491,6 +1638,8 @@ function quitToMenu() {
   $('pauseScreen').classList.add('hidden');
   $('hud').classList.add('hidden');
   $('fx').style.opacity = 0;
+  if (specialActive > 0) endInvincibility();
+  hasSpecial = false; cineT = 0; $('cinefx').classList.remove('on'); $('specialBtn').classList.remove('show');
   enterMenu();
 }
 function updateHud() {
@@ -1509,6 +1658,15 @@ function updateHud() {
   $('lives').textContent = '❤️'.repeat(Math.max(0,lives)) + '🖤'.repeat(Math.max(0,3 - lives));
   const mult = speed / BASE_SPEED; const sp = $('speed');
   sp.textContent = 'SPEED ' + mult.toFixed(1) + 'x'; sp.classList.toggle('boost', mult > 2.2);
+  // invincibility countdown
+  const stEl = $('specialTimer');
+  if (specialActive > 0) {
+    stEl.classList.add('show');
+    stEl.querySelector('.st-txt').textContent = '⚡ 無敵 ' + specialActive.toFixed(1) + 's';
+    stEl.querySelector('.st-bar > i').style.width = Math.max(0, specialActive / SPECIAL_TIME * 100) + '%';
+  } else {
+    stEl.classList.remove('show');
+  }
 }
 function flashToast(t, color) {
   const el = $('toast'); el.textContent = t; el.style.color = color || '#fff';
@@ -1584,6 +1742,49 @@ function pickupUnlockItem() {
   }
   updateHud();
 }
+function pickupSpecialItem() {
+  specialItem.metadata.active = false; specialItem.setEnabled(false);
+  if (sparkBurst) sparkBurst.manualEmitCount = 240;
+  hasSpecial = true;
+  $('specialBtn').classList.add('show');
+  flashToast('⚡ 必殺技チャージ完了！', '#c08bff');
+  flashCombo('ボタンで必殺技を発動！');
+  updateHud();
+}
+// Fire the charged ultimate: kick off the time-stop cinematic. The actual
+// invincibility window begins when the cinematic finishes (see update()).
+function fireSpecial() {
+  if (!hasSpecial || phase !== 'playing' || cineT > 0 || specialActive > 0) return;
+  hasSpecial = false;
+  $('specialBtn').classList.remove('show');
+  cineT = SPECIAL_CINE;
+  $('cinefx').classList.add('on');
+  if (pipeline) pipeline.chromaticAberration.aberrationAmount = 12;
+  flashToast('⚡ 必殺技 発動！', '#c08bff');
+}
+// Begin the 10s invincibility window after the cinematic — with a white flash,
+// a screen-aura overlay, the worn energy ring, and a streaming aura.
+function beginInvincibility() {
+  specialActive = SPECIAL_TIME;
+  $('cinefx').classList.remove('on');
+  $('specialfx').classList.add('on');
+  if (auraRing) auraRing.setEnabled(true);
+  if (specialAura) specialAura.emitRate = 600;
+  if (sparkBurst) sparkBurst.manualEmitCount = 400;
+  const fl = $('specialFlash');
+  fl.classList.remove('fade'); fl.classList.add('fire');
+  // next frame: drop the .fire (instant-on) and add .fade so it eases out
+  requestAnimationFrame(() => { fl.classList.remove('fire'); fl.classList.add('fade'); });
+  flashCombo('🛡️ 無敵! 敵を粉砕せよ');
+}
+function endInvincibility() {
+  specialActive = 0;
+  $('specialfx').classList.remove('on');
+  if (auraRing) auraRing.setEnabled(false);
+  if (specialAura) specialAura.emitRate = 0;
+  if (dragonGlow) { dragonGlow.diffuse.set(1.0, 0.6, 0.25); dragonGlow.intensity = 1.2; }
+  updateHud();
+}
 
 // ---------- main loop ----------
 function update(dt) {
@@ -1610,6 +1811,10 @@ function update(dt) {
   // held still for stable framing — nothing to drive each frame.
   if (phase === 'photo') return;
   if (phase !== 'playing') { animateAmbient(dt, tms, BASE_SPEED*0.5); spinHeals(dt); return; } // 'over' holds the view
+
+  // 必殺技 activation cinematic: time freezes (distance/obstacles don't advance),
+  // the camera orbits the player, and the aura charges up. Returns early until done.
+  if (cineT > 0) { updateCinematic(dt, tms); return; }
 
   // Very Hard ramps 3x→6x; normal ramps 1x→3.4x. Both scale with distance.
   const startMult = veryHard ? VHARD_START_MULT : 1;
@@ -1658,7 +1863,22 @@ function update(dt) {
   shake *= 0.85; if (shake < 0.01) shake = 0;
   if (pipeline) pipeline.chromaticAberration.aberrationAmount += (1.5 + boost*3 - pipeline.chromaticAberration.aberrationAmount) * Math.min(1, dt*4);
 
-  if (invuln > 0) { invuln -= dt; if (dragonFacing) dragonFacing.setEnabled(Math.floor(tms/70)%2===0); }
+  if (specialActive > 0) {
+    // invincible: keep the model solid (no blink) and drive the aura/ring/glow so
+    // it's unmistakable. Counts the 10s window down here.
+    specialActive -= dt;
+    if (dragonFacing) dragonFacing.setEnabled(true);
+    if (auraRing) {
+      auraRing.rotation.y += dt*6; auraRing.rotation.z += dt*3.4;
+      auraRing.material.emissiveColor.set(0.5+0.5*Math.sin(tms*0.008), 0.6+0.3*Math.sin(tms*0.011+2), 1.0);
+    }
+    if (dragonGlow) {
+      dragonGlow.intensity = 2.4 + Math.sin(tms*0.02)*0.8;
+      dragonGlow.diffuse.set(0.5+0.3*Math.sin(tms*0.01), 0.6, 1.0);
+    }
+    if (specialAura) specialAura.emitRate = 600;
+    if (specialActive <= 0) endInvincibility();
+  } else if (invuln > 0) { invuln -= dt; if (dragonFacing) dragonFacing.setEnabled(Math.floor(tms/70)%2===0); }
   else if (dragonFacing) dragonFacing.setEnabled(true);
   if (comboTimer > 0) { comboTimer -= dt; if (comboTimer <= 0) dodgeCombo = 0; }
 
@@ -1667,9 +1887,20 @@ function update(dt) {
     m.rotation.y += m.metadata.spin; m.rotation.x += m.metadata.spin*0.5;
     if (m.position.z < dragZ - RECYCLE_BEHIND) placeObstacle(m, dragZ + SPAWN_AHEAD);
     const dz = m.position.z - dragZ;
-    if (invuln <= 0 && Math.abs(dz) < HIT_Z) {
+    if (Math.abs(dz) < HIT_Z) {
       const dx = m.position.x - dragonRoot.position.x, dy = m.position.y - dragonRoot.position.y;
-      if (dx*dx + dy*dy < HIT_R*HIT_R) { hit(); placeObstacle(m, dragZ + SPAWN_AHEAD); continue; }
+      const r2 = dx*dx + dy*dy;
+      if (specialActive > 0) {
+        // invincible: the enemy is smashed to pieces instead of damaging the player
+        const SR = HIT_R * 1.7;
+        if (r2 < SR*SR) {
+          shatterObstacle(m);
+          if (sparkBurst) sparkBurst.manualEmitCount = 30;
+          if (pipeline) pipeline.chromaticAberration.aberrationAmount = 24;
+          shake = Math.max(shake, 0.35);
+          placeObstacle(m, dragZ + SPAWN_AHEAD); continue;
+        }
+      } else if (invuln <= 0 && r2 < HIT_R*HIT_R) { hit(); placeObstacle(m, dragZ + SPAWN_AHEAD); continue; }
     }
     if (!m.metadata.scored && dz < -0.5 && dz > -3.0) { m.metadata.scored = true; dodgeCombo++; comboTimer = 2.0; showCombo(); }
   }
@@ -1709,6 +1940,26 @@ function update(dt) {
     }
   }
 
+  // 必殺技 item: roll at spaced checkpoints. Only offer one when the player has no
+  // charged ultimate and isn't already invincible / mid-cinematic — keeps it rare.
+  if (specialItem && !specialItem.metadata.active && !hasSpecial && specialActive <= 0 && cineT <= 0 && distance >= nextSpecialCheck) {
+    nextSpecialCheck = distance + 700 + Math.random()*500;
+    if (Math.random() < 0.5) activateSpecialItem();
+  }
+  if (specialItem && specialItem.metadata.active) {
+    specialItem.rotation.y += dt*2.4; specialItem.metadata.ring.rotation.z += dt*2.2; specialItem.metadata.ring2.rotation.y += dt*2.6;
+    const s = 1 + Math.sin(tms*0.008)*0.18; specialItem.scaling.set(s,s,s);
+    const p = 0.5 + 0.5*Math.sin(tms*0.015); specialItem.metadata.mat.emissiveColor.set(0.45 + 0.45*p, 0.3 + 0.2*p, 1.0);
+    if (specialItem.position.z < dragZ - 6) { specialItem.metadata.active = false; specialItem.setEnabled(false); }
+    else {
+      const dz = specialItem.position.z - dragZ;
+      if (Math.abs(dz) < 2.4) {
+        const dx = specialItem.position.x - dragonRoot.position.x, dy = specialItem.position.y - dragonRoot.position.y;
+        if (dx*dx + dy*dy < 6.5) pickupSpecialItem();
+      }
+    }
+  }
+
   const gc = stageTgt.gate;
   for (const g of gates) {
     if (g.position.z < dragZ - 8) g.position.z += 520;
@@ -1718,6 +1969,33 @@ function update(dt) {
 
   animateAmbient(dt, tms, speed);
   updateHud();
+}
+
+// The 必殺技 activation cinematic: time is frozen, so distance and obstacles hold
+// still while the camera sweeps around the player and the aura charges up.
+function updateCinematic(dt, tms) {
+  cineT -= dt;
+  const prog = 1 - Math.max(0, cineT) / SPECIAL_CINE;   // 0 → 1
+  const c = dragonRoot.position;
+  // camera spirals around the model (just over one full revolution, easing inward)
+  const ang = -Math.PI/2 + prog * Math.PI * 2.3;
+  const rad = 12 - prog * 4;
+  camera.position.set(c.x + Math.cos(ang)*rad, c.y + 1.5 + Math.sin(prog*Math.PI)*3.5, c.z + Math.sin(ang)*rad);
+  camera.setTarget(new BABYLON.Vector3(c.x, c.y + 0.4, c.z));
+  camera.rotation.z = 0; camera.fov = 1.0;
+  // the model spins up as it gathers power, then snaps back to forward facing
+  dragonFacing.setEnabled(true);
+  dragonBank.rotation.set(0, prog * Math.PI * 4, 0);
+  dragonFacing.position.y = Math.sin(tms*0.012) * 0.14;
+  // aura + glow swell with the charge
+  dragonGlow.position.copyFrom(c);
+  if (specialAura) specialAura.emitRate = 200 + prog * 1500;
+  if (sparkBurst) sparkBurst.manualEmitCount = Math.floor(4 + prog*8);
+  if (dragonGlow) { dragonGlow.intensity = 1.2 + prog*4.5; dragonGlow.diffuse.set(0.5 + prog*0.3, 0.6, 1.0); }
+  if (pipeline) pipeline.chromaticAberration.aberrationAmount = 8 + prog*34;
+  // ambient barely creeps — sells the "時間が止まる" freeze
+  animateAmbient(dt*0.12, tms, 4);
+  if (cineT <= 0) { dragonBank.rotation.set(0,0,0); beginInvincibility(); }
 }
 
 function updateIntro(dt, tms) {
@@ -1913,6 +2191,8 @@ addEventListener('keydown', e => {
     if (phase === 'playing') pauseGame();
     else if (phase === 'paused') resumeGame();
   }
+  // fire the 必殺技 with F / Shift when one is charged
+  if ((k === 'f' || k === 'shift') && phase === 'playing' && hasSpecial) { e.preventDefault(); fireSpecial(); }
   if ((k === ' ' || k === 'enter')) {
     if (phase === 'intro') { introT = INTRO_DUR; }
     else if (phase === 'menu' || phase === 'over') {
@@ -1968,6 +2248,10 @@ $('pauseBtn').addEventListener('pointerup', e => e.stopPropagation());
 $('pauseBtn').onclick = e => { e.stopPropagation(); pauseGame(); };
 $('resumeBtn').onclick = resumeGame;
 $('toMenuBtn').onclick = quitToMenu;
+// 必殺技 button (stopPropagation so the tap doesn't fall through to the canvas swipe)
+$('specialBtn').addEventListener('pointerdown', e => e.stopPropagation());
+$('specialBtn').addEventListener('pointerup', e => e.stopPropagation());
+$('specialBtn').onclick = e => { e.stopPropagation(); fireSpecial(); };
 
 // ---------- share + greeting card ----------
 const SHARE_URL = 'https://ron0401.github.io/DragonDash/game/';
