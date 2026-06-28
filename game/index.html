@@ -658,6 +658,7 @@ let hasSpecial = false;           // a charged ultimate is ready to fire (button
 let specialActive = 0;            // seconds of invincibility remaining (0 = off)
 let cineT = 0;                    // remaining seconds of the time-stop activation cinematic
 let nextSpecialCheck = 600;       // distance of the next chance to roll for the 必殺技 item
+let specialItemsLeft = 2;         // 必殺技アイテムの残り出現回数(初回チャージ＋2個で計3回まで)
 let charTemplates = [];           // loaded model holders, indexed to match CHARACTERS
 let dragonModelRoot = null;       // the ACTIVE player model (a clone under dragonFacing)
 let selectedCharIndex = 0;        // which CHARACTERS entry the player flies as
@@ -1558,6 +1559,8 @@ function resetGame() {
   // reset 必殺技 state + clear any leftover VFX from a prior run.
   // start every run with one ultimate already charged so it's usable from the off.
   hasSpecial = true; specialActive = 0; cineT = 0;
+  // 必殺技は初回チャージを含めて同じゲーム内で3回まで。アイテムは残り2個まで出現。
+  specialItemsLeft = 2;
   nextSpecialCheck = 300 + Math.random()*250;
   if (specialItem) { specialItem.metadata.active = false; specialItem.setEnabled(false); }
   if (specialAura) specialAura.emitRate = 0;
@@ -1745,6 +1748,7 @@ function pickupUnlockItem() {
 }
 function pickupSpecialItem() {
   specialItem.metadata.active = false; specialItem.setEnabled(false);
+  if (specialItemsLeft > 0) specialItemsLeft--;   // 取得した分だけ残り出現回数を減らす(2個でゼロ→以後出現しない)
   if (sparkBurst) sparkBurst.manualEmitCount = 240;
   hasSpecial = true;
   $('specialBtn').classList.add('show');
@@ -1944,7 +1948,7 @@ function update(dt) {
   // 必殺技 item: roll at checkpoints. Only offer one when the player has no charged
   // ultimate and isn't already invincible / mid-cinematic. Spawns are frequent so a
   // new one shows up soon after you use the last; a missed roll re-checks quickly.
-  if (specialItem && !specialItem.metadata.active && !hasSpecial && specialActive <= 0 && cineT <= 0 && distance >= nextSpecialCheck) {
+  if (specialItem && specialItemsLeft > 0 && !specialItem.metadata.active && !hasSpecial && specialActive <= 0 && cineT <= 0 && distance >= nextSpecialCheck) {
     if (Math.random() < 0.85) { activateSpecialItem(); nextSpecialCheck = distance + 450 + Math.random()*350; }
     else nextSpecialCheck = distance + 150;   // missed: try again very soon
   }
