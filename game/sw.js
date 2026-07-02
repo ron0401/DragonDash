@@ -1,5 +1,5 @@
 /* Dragon Dash — Service Worker (offline-capable PWA) */
-const VERSION = "v10";
+const VERSION = "v11";
 const SHELL_CACHE = `dd-shell-${VERSION}`;
 const RUNTIME_CACHE = `dd-runtime-${VERSION}`;
 
@@ -12,6 +12,8 @@ const SHELL_ASSETS = [
   "./lib/babylon.js",
   "./lib/babylonjs.loaders.min.js",
   "./lib/qrcode.js",
+  "./bird2.glb",
+
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/maskable-192.png",
@@ -51,17 +53,33 @@ self.addEventListener("fetch", (event) => {
   // Only handle same-origin requests; let CDN / cross-origin pass through.
   if (url.origin !== self.location.origin) return;
 
-  // Navigation requests: network-first, fall back to cached shell (offline).
+  // Navigation requests: network-first with a short timeout, falling back to the
+  // cached shell. Without the timeout, an installed PWA on a flaky connection sits
+  // on a blank screen for the browser's full fetch timeout before the cache kicks in.
   if (req.mode === "navigate") {
-    event.respondWith(
-      fetch(req)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(SHELL_CACHE).then((c) => c.put("./index.html", copy));
-          return res;
-        })
-        .catch(() => caches.match("./index.html").then((r) => r || caches.match("./")))
-    );
+    event.respondWith((async () => {
+      const network = fetch(req).then((res) => {
+        const copy = res.clone();
+        caches.open(SHELL_CACHE).then((c) => c.put("./index.html", copy));
+        return res;
+      });
+      const cachedShell = () =>
+        caches.match("./index.html").then((r) => r || caches.match("./"));
+      try {
+        const res = await Promise.race([
+          network,
+          new Promise((resolve) => setTimeout(() => resolve(null), 3500)),
+        ]);
+        if (res) return res;
+        // timed out: serve the cached shell now (the network fetch keeps running
+        // in the background and refreshes the cache for next launch)
+        return (await cachedShell()) || network;
+      } catch (_) {
+        const cached = await cachedShell();
+        if (cached) return cached;
+        throw _;
+      }
+    })());
     return;
   }
 

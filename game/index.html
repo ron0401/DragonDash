@@ -13,7 +13,7 @@
 <link rel="manifest" href="./manifest.webmanifest" />
 <link rel="icon" type="image/png" href="./icons/favicon.png" />
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
-<title>🐉 DRAGON DASH — LEGO Dragon Runner</title>
+<title>🐉 DRAGON DASH — 3D Dragon Runner</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
   html, body { position: fixed; inset: 0; width: 100%; height: 100%; height: 100dvh; overflow: hidden; overscroll-behavior: none; touch-action: none; background: #04050a; font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", sans-serif; color:#fff; }
@@ -62,7 +62,7 @@
   .btn:active { transform: translateY(0); }
   .btn-install { margin-top: 12px; font-size: 16px; padding: 13px 30px; min-height: 48px; background: linear-gradient(90deg,#2f9bff,#7a5cff); box-shadow: 0 10px 28px rgba(60,120,255,.4); }
   .btn-install:hover { box-shadow: 0 16px 38px rgba(60,120,255,.55); }
-  .install-hint { margin-top: 12px; font-size: 12px; color: #9fb4d6; line-height: 1.7; }
+  .install-hint { margin-top: 12px; font-size: 13px; color: #9fb4d6; line-height: 1.7; }
   .install-hint b { color: #cfe0ff; font-size: 14px; }
   /* step-by-step "Add to Home Screen" guide shown by the install overlay */
   #installScreen .panel { text-align:left; max-width:min(460px,92vw); }
@@ -90,8 +90,8 @@
   .btn-score:hover { box-shadow: 0 16px 34px rgba(80,120,255,.5); }
 
   .roster { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:8px; }
-  .chip { font-size:10px; padding:3px 8px; border-radius:20px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12); color:#cfd6e2; }
-  .picker-label { font-size:12px; color:#9fe0ff; margin-top:8px; }
+  .chip { font-size:11px; padding:3px 8px; border-radius:20px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12); color:#cfd6e2; }
+  .picker-label { font-size:13px; color:#9fe0ff; margin-top:8px; }
   .char-chip { font: inherit; font-size:12px; padding:7px 13px; min-height:34px; cursor:pointer; pointer-events:auto; color:#cfd6e2;
                background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.14); border-radius:20px;
                transition: transform .1s, background .15s, border-color .15s, box-shadow .15s; touch-action: manipulation; }
@@ -179,7 +179,7 @@
   #startScreen.menu .panel .btn { margin-top: 12px; }
   .lead { color:#ff9a6a; font-weight:600; }
   .best { color:#ffd27a; font-weight:700; margin-top:8px !important; }
-  .hint { font-size:12px; color:#8d97a8; margin-top:8px !important; }
+  .hint { font-size:13px; color:#8d97a8; margin-top:8px !important; }
   .drag-hint { font-size: 13px; color: #9fe0ff; margin-top: 6px; }
   .spinner { width:56px; height:56px; margin:0 auto; border-radius:50%; border:5px solid rgba(255,255,255,.15); border-top-color:#ff7a33; border-right-color:#ff3d5d; animation:spin .85s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -232,7 +232,7 @@
 <div id="specialFlash"></div>
 
 <div id="hud" class="hidden">
-  <div class="hud-box" id="dist">DISTANCE<b>0 m</b><i id="bestPct"></i></div>
+  <div class="hud-box" id="dist">DISTANCE<b id="distVal">0 m</b><i id="bestPct"></i></div>
   <button id="pauseBtn" aria-label="一時停止">⏸</button>
   <div class="hud-box" style="text-align:right">
     <div id="lives">❤️❤️❤️</div>
@@ -274,6 +274,7 @@
       <button class="btn btn-sec btn-photo" id="photoBtn">📸 フォト</button>
       <button class="btn btn-sec" id="shareBtn">📤 共有</button>
       <button class="btn btn-sec btn-card" id="cardBtn">🎴 カード</button>
+      <button class="btn btn-sec" id="soundBtn">🔊 サウンド ON</button>
     </div>
     <button class="btn btn-install hidden" id="installBtn">📲 インストール</button>
   </div>
@@ -304,6 +305,7 @@
     </div>
     <button class="btn" id="retryBtn">↻ もう一度</button>
     <div class="actions">
+      <button class="btn btn-sec" id="menuBtn2">🏠 メニューへ</button>
       <button class="btn btn-sec" id="shareBtn2">📤 アプリを共有</button>
       <button class="btn btn-sec btn-score" id="scoreImgBtn">🖼️ スコア画像をダウンロード</button>
     </div>
@@ -317,6 +319,7 @@
     <button class="btn" id="resumeBtn">▶ 続ける</button>
     <div class="actions">
       <button class="btn btn-sec" id="toMenuBtn">🏠 メニューに戻る</button>
+      <button class="btn btn-sec" id="soundBtn2">🔊 サウンド ON</button>
     </div>
   </div>
 </div>
@@ -327,8 +330,8 @@
     <div class="help-list">
       <div class="help-row"><span class="hi">🕹️</span><span class="ht"><b>そうさ：</b>画面をスワイプしてドラゴンを上下左右に移動。指を離すと止まります。PCでは矢印キー／WASDでも動かせます。メニューのモデルはドラッグで回転できます。</span></div>
       <div class="help-row"><span class="hi">💥</span><span class="ht"><b>ルール：</b>敵に3回ぶつかるとゲームオーバー。<b>💚</b>を取ると体力が1つ回復します。</span></div>
-      <div class="help-row"><span class="hi">✨</span><span class="ht"><b>かくしキャラ：</b>プレイ中にまれに<b>かがやくアイテム</b>が出現！取るとランダムでキャラクターが1体解放されます。解放はずっと記憶されます。</span></div>
-      <div class="help-row"><span class="hi">⚡</span><span class="ht"><b>必殺技：</b>まれに出る<b>⚡必殺技アイテム</b>を取ると画面下に<b>必殺技ボタン</b>が出現。押すと派手な演出のあと<b>10秒間 無敵</b>に！無敵中に敵へぶつかると敵が<b>粉々</b>に砕けます（PCは <kbd>F</kbd>）。</span></div>
+      <div class="help-row"><span class="hi">✨</span><span class="ht"><b>かくしキャラ：</b>プレイ中にときどき<b>かがやくアイテム</b>が出現！取るとランダムでキャラクターが1体解放されます。解放はずっと記憶されます。</span></div>
+      <div class="help-row"><span class="hi">⚡</span><span class="ht"><b>必殺技：</b>ときどき出る<b>⚡必殺技アイテム</b>を取ると画面下に<b>必殺技ボタン</b>が出現。押すと派手な演出のあと<b>10秒間 無敵</b>に！無敵中に敵へぶつかると敵が<b>粉々</b>に砕けます（PCは <kbd>F</kbd>）。</span></div>
       <div class="help-row"><span class="hi">🏆</span><span class="ht"><b>スコア：</b>進んだ距離がスコアです。自己ベストの更新を目指そう！</span></div>
       <div class="help-row"><span class="hi">⏸</span><span class="ht"><b>一時停止：</b>プレイ中に右上のボタン（PCは <kbd>P</kbd> または <kbd>Esc</kbd>）。</span></div>
     </div>
@@ -628,17 +631,17 @@ const CHARACTERS = [
 const STAGE_STARTS = [0, 1000, 4000];
 const STAGES = [
   { name:'マグマだまり', sub:'MAGMA CHAMBER', emoji:'🌋', toast:'#ff8a3a',
-    floor:null, sky:0, env:0.34,
+    floor:null, sky:0, env:0.34, iosSky:['#1c0503','#7a2408'],
     clear:[0.05,0.018,0.01], fog:[0.16,0.05,0.03], fogStart:95, fogEnd:330,
     streak:[1.0,0.55,0.25], gate:[1.0,0.45,0.10], glow:[1.0,0.55,0.25],
     hemi:[0.40,0.24,0.19], hemiInt:0.5, dir:[1.0,0.58,0.34], dirInt:1.1 },
   { name:'岩の草原', sub:'ROCKY PLAINS', emoji:'🌿', toast:'#69e36b',
-    floor:null, sky:1, env:1.15,
+    floor:null, sky:1, env:1.15, iosSky:['#6ea8dd','#dcecf8'],
     clear:[0.55,0.70,0.85], fog:[0.70,0.82,0.92], fogStart:120, fogEnd:330,
     streak:[0.85,1.0,0.85], gate:[0.40,1.0,0.50], glow:[0.60,1.0,0.60],
     hemi:[0.60,0.66,0.60], hemiInt:1.0, dir:[1.0,0.97,0.85], dirInt:2.2 },
   { name:'宇宙空間', sub:'DEEP SPACE', emoji:'🌌', toast:'#9b8cff',
-    floor:null, sky:2, env:0.40,
+    floor:null, sky:2, env:0.40, iosSky:['#000006','#131636'],
     clear:[0.0,0.0,0.02], fog:[0.01,0.01,0.04], fogStart:280, fogEnd:900,
     streak:[0.90,0.95,1.0], gate:[0.60,0.40,1.0], glow:[0.50,0.50,1.0],
     hemi:[0.20,0.22,0.40], hemiInt:0.35, dir:[0.60,0.65,1.0], dirInt:0.5 },
@@ -649,6 +652,7 @@ function stageForDistance(d) { let s = 0; for (let i = 0; i < STAGE_STARTS.lengt
 let scene, camera, showcaseCam, pipeline, dragonRoot, dragonBank, dragonFacing, dragonGlow, fireTrail, sparkBurst;
 let hemiLight, dirLight, fillLight;
 let tunnelFloors = [], tunnelCeils = [], stageSkies = [], skybox, skyMat, streakMat = null;
+let iosSkyDome = null, iosSkyTex = null;   // cheap gradient sky used instead of image skyboxes on iOS
 let currentStageIndex = -1, stageTgt = STAGES[0];
 let obstacles = [], heals = [], gates = [], streaks = [];
 let unlockItem = null;            // the rare glowing collectible that unlocks a character
@@ -677,6 +681,9 @@ let bootStep = 'start';   // which createScene() step is running, for boot-error
 let quickPlay = false;
 let veryHard = false;             // current run uses Very Hard Mode (3→6x, subspace)
 let lives = 3, distance = 0, speed = BASE_SPEED, invuln = 0, shake = 0, camRoll = 0, dodgeCombo = 0, comboTimer = 0;
+let bonus = 0;                    // combo distance bonus — score only, never moves the world
+let overShownAt = 0;              // when the game-over screen appeared (guards accidental instant retry)
+function totalScore() { return distance + bonus; }
 let nextHealAt = 350;
 let nextUnlockCheck = 400;         // distance of the next chance to roll for the glowing item
 let unlockedThisRun = [];          // character indices unlocked during the current run (for the game-over reveal)
@@ -806,7 +813,7 @@ function loadSkies() {
   // skip the image-based skyboxes entirely: the per-stage clearColor (driven by
   // setStageTint) becomes the background and the scene stays lit by the
   // hemispheric/directional lights. Less scenic, but it boots reliably.
-  if (IS_IOS) { if (skybox) skybox.setEnabled(false); return; }
+  if (IS_IOS) { if (skybox) skybox.setEnabled(false); buildIOSSky(); drawIOSSky(STAGES[0]); return; }
   const SKY_SIZE = 1024;
   // 1st マグマだまり: volcanic-cavern panorama (smoky ceiling + glowing molten horizon)
   stageSkies[0] = new BABYLON.EquiRectangularCubeTexture("./assets/sky/magma.jpg", scene, SKY_SIZE);
@@ -817,6 +824,28 @@ function loadSkies() {
   stageSkies[2] = new BABYLON.EquiRectangularCubeTexture("./assets/sky/space.jpg", scene, SKY_SIZE);
   stageSkies.forEach(t => { t.coordinatesMode = BABYLON.Texture.SKYBOX_MODE; });
   stageSkies[0].level = 0.42;   // strongly dim the very bright molten panorama — it was washing everything out; obstacles/dragon are emissive-lit so they still read against the darker cavern
+}
+
+// iOS fallback sky: the image skyboxes are skipped there (their equirect→cubemap /
+// prefilter GPU passes were losing the GL context at boot), which left the stages
+// on a flat clearColor void. A big sphere with a 2D-canvas gradient texture gives
+// each stage a sky again with zero GPU conversion work.
+function buildIOSSky() {
+  iosSkyTex = new BABYLON.DynamicTexture("iosSkyTex", { width: 16, height: 256 }, scene, false);
+  const m = new BABYLON.StandardMaterial("iosSkyMat", scene);
+  m.emissiveTexture = iosSkyTex; m.disableLighting = true; m.backFaceCulling = false;
+  m.diffuseColor = new BABYLON.Color3(0, 0, 0); m.specularColor = new BABYLON.Color3(0, 0, 0);
+  iosSkyDome = BABYLON.MeshBuilder.CreateSphere("iosSkyDome", { diameter: 1600, segments: 8 }, scene);
+  iosSkyDome.material = m; iosSkyDome.infiniteDistance = true; iosSkyDome.isPickable = false;
+  iosSkyDome.applyFog = false; iosSkyDome.renderingGroupId = 0;
+}
+function drawIOSSky(st) {
+  if (!iosSkyTex || !st.iosSky) return;
+  const ctx = iosSkyTex.getContext();
+  const g = ctx.createLinearGradient(0, 0, 0, 256);
+  g.addColorStop(0, st.iosSky[0]); g.addColorStop(1, st.iosSky[1]);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 16, 256);
+  iosSkyTex.update(false);
 }
 
 // ---- ground PBR materials (real CC0 textures) ----
@@ -873,6 +902,7 @@ function applyStage(i, announce) {
   // swap the live skybox + image-based lighting
   const sky = stageSkies[st.sky];
   if (sky) { skyMat.reflectionTexture = sky; scene.environmentTexture = sky; }
+  if (IS_IOS) drawIOSSky(st);
   stageTgt = st;
   if (announce) { flashToast(st.emoji + ' ' + st.name, st.toast); flashCombo('STAGE ' + (i+1) + ' — ' + st.sub); }
 }
@@ -975,7 +1005,7 @@ function normalizeImported(meshes, root, targetSize) {
 // Load every character once into a disabled holder. Each holder is reused both
 // as the player model (cloned under dragonFacing) and, for non-dragon ones, as a
 // flying obstacle — so nothing is loaded twice.
-function importCharacter(i) {
+function importCharacterCore(i) {
   const char = CHARACTERS[i];
   return BABYLON.SceneLoader.ImportMeshAsync("", char.dir, char.file, scene).then(res => {
     const root = res.meshes[0];
@@ -986,8 +1016,13 @@ function importCharacter(i) {
     root.parent = holder; holder.setEnabled(false);
     charTemplates[i] = { holder, char };
     console.log("[char] loaded", char.file);
-    assetLoaded();
-  }).catch(err => { console.warn("char load failed", char.file, err); assetLoaded(); });
+  });
+}
+// boot-time wrapper: drives the loading bar whether the import succeeds or fails
+function importCharacter(i) {
+  return importCharacterCore(i)
+    .then(() => assetLoaded())
+    .catch(err => { console.warn("char load failed", CHARACTERS[i].file, err); assetLoaded(); });
 }
 
 function loadCharacters() {
@@ -1191,7 +1226,11 @@ function makeBox(i) {
 }
 
 function buildObstacles(useModels) {
-  obstacles.forEach(o => o.dispose());
+  obstacles.forEach(o => {
+    // the halo plane has its own material (the texture is shared — keep it)
+    if (o.metadata && o.metadata.halo && o.metadata.halo.material) o.metadata.halo.material.dispose();
+    o.dispose();
+  });
   obstacles = [];
   const tmpls = obstacleTemplates();
   for (let i = 0; i < NUM_OBSTACLES; i++) {
@@ -1202,52 +1241,89 @@ function buildObstacles(useModels) {
     } else {
       node = makeBox(i);
     }
-    node.metadata = { spin: (Math.random()*2-1)*0.04, scored: false };
-    attachHalo(node, 4.0);   // warm danger aura so enemies stand out — kept tight so it frames the model instead of swallowing it
+    node.metadata = { spin: (Math.random()*2-1)*2.4, scored: false };   // rad/s — dt-scaled in update()
+    node.metadata.halo = attachHalo(node, 4.0);   // warm danger aura so enemies stand out — kept tight so it frames the model instead of swallowing it
     placeObstacle(node, 40 + (i / NUM_OBSTACLES) * SPAWN_AHEAD);
     obstacles.push(node);
   }
 }
 
+// Pickups that are currently live in the world (used to keep enemy spawns off them).
+function activePickups() {
+  const list = heals.filter(h => h.metadata && h.metadata.active);
+  if (unlockItem && unlockItem.metadata.active) list.push(unlockItem);
+  if (specialItem && specialItem.metadata.active) list.push(specialItem);
+  return list;
+}
 function placeObstacle(m, baseZ) {
   // spawn across the FULL play area (player is clamped to ±LANE_W / Y_CENTER±LANE_H),
   // so hugging an edge or corner is no longer a safe spot — obstacles reach there too.
-  m.position.x = (Math.random()*2-1) * LANE_W;
-  m.position.y = Y_CENTER + (Math.random()*2-1) * LANE_H;
-  m.position.z = baseZ + Math.random()*22;
+  // A few retries keep spawns from stacking into an impassable clump or landing on
+  // an active pickup (a 💚 inside an enemy would make grabbing it a guaranteed hit).
+  for (let tries = 0; tries < 6; tries++) {
+    m.position.x = (Math.random()*2-1) * LANE_W;
+    m.position.y = Y_CENTER + (Math.random()*2-1) * LANE_H;
+    m.position.z = baseZ + Math.random()*22;
+    let clear = true;
+    for (const o of obstacles) {
+      if (o === m) continue;
+      const dx = o.position.x - m.position.x, dy = o.position.y - m.position.y;
+      if (dx*dx + dy*dy < 20 && Math.abs(o.position.z - m.position.z) < 5) { clear = false; break; }
+    }
+    if (clear) for (const p of activePickups()) {
+      const dx = p.position.x - m.position.x, dy = p.position.y - m.position.y;
+      if (dx*dx + dy*dy < 16 && Math.abs(p.position.z - m.position.z) < 8) { clear = false; break; }
+    }
+    if (clear) break;
+  }
   m.rotation.set(Math.random()*3, Math.random()*3, Math.random()*3);
   if (m.metadata) m.metadata.scored = false;
+}
+
+// Pick a pickup spawn point that isn't on top of an enemy, so collecting an item
+// can never be a hidden trap.
+function pickupSpawnXY(z) {
+  let x = 0, y = Y_CENTER;
+  for (let tries = 0; tries < 10; tries++) {
+    x = (Math.random()*2-1) * (LANE_W - 2);
+    y = Y_CENTER + (Math.random()*2-1) * (LANE_H - 2);
+    let ok = true;
+    for (const o of obstacles) {
+      const dx = o.position.x - x, dy = o.position.y - y;
+      if (dx*dx + dy*dy < 16 && Math.abs(o.position.z - z) < 8) { ok = false; break; }
+    }
+    if (ok) break;
+  }
+  return { x, y };
 }
 
 function activateHeal() {
   const h = heals.find(x => !x.metadata.active); if (!h) return;
   h.metadata.active = true; h.setEnabled(true);
-  h.position.x = (Math.random()*2-1) * (LANE_W - 2);
-  h.position.y = Y_CENTER + (Math.random()*2-1) * (LANE_H - 2);
-  h.position.z = distance + SPAWN_AHEAD;
+  const z = distance + SPAWN_AHEAD, p = pickupSpawnXY(z);
+  h.position.set(p.x, p.y, z);
 }
 
 function activateUnlockItem() {
   if (!unlockItem || unlockItem.metadata.active) return;
   unlockItem.metadata.active = true; unlockItem.setEnabled(true);
-  unlockItem.position.x = (Math.random()*2-1) * (LANE_W - 2);
-  unlockItem.position.y = Y_CENTER + (Math.random()*2-1) * (LANE_H - 2);
-  unlockItem.position.z = distance + SPAWN_AHEAD;
+  const z = distance + SPAWN_AHEAD, p = pickupSpawnXY(z);
+  unlockItem.position.set(p.x, p.y, z);
   flashCombo('✨ かがやくアイテム出現！');
 }
 
 function activateSpecialItem() {
   if (!specialItem || specialItem.metadata.active) return;
   specialItem.metadata.active = true; specialItem.setEnabled(true);
-  specialItem.position.x = (Math.random()*2-1) * (LANE_W - 2);
-  specialItem.position.y = Y_CENTER + (Math.random()*2-1) * (LANE_H - 2);
-  specialItem.position.z = distance + SPAWN_AHEAD;
+  const z = distance + SPAWN_AHEAD, p = pickupSpawnXY(z);
+  specialItem.position.set(p.x, p.y, z);
   flashCombo('⚡ 必殺技アイテム出現！');
 }
 
 // Blow an enemy to pieces at the given world position (used while invincible).
 function shatterObstacle(m) {
   if (!specialShatter) return;
+  sfxShatter();
   const e = specialShatter.emitter;
   e.x = m.position.x; e.y = m.position.y; e.z = m.position.z;
   specialShatter.manualEmitCount = (specialShatter.manualEmitCount || 0) + 90;
@@ -1269,6 +1345,15 @@ function makeLabel(text) {
 // Tear down + rebuild the showcase ring so it reflects the current unlock state
 // (e.g. a character unlocked during the last run now joins the menu lineup).
 function rebuildShowcase() {
+  // labels own their DynamicTexture + material, so dispose those explicitly —
+  // otherwise every menu visit leaks a texture. (Model clones SHARE the template
+  // materials; the plain dispose below correctly leaves those alone.)
+  showcaseItems.forEach(it => {
+    if (it.label && it.label.material) {
+      if (it.label.material.diffuseTexture) it.label.material.diffuseTexture.dispose();
+      it.label.material.dispose();
+    }
+  });
   if (showcaseRoot) { showcaseRoot.dispose(); showcaseRoot = null; }
   showcaseItems = [];
   showcaseBuilt = false;
@@ -1310,7 +1395,7 @@ function buildShowcase() {
     label.position.set(0, 2.6, 0);
     const k = 1/SHOWCASE_BASE; label.scaling.set(k, k, k);
 
-    showcaseItems.push({ pivot, charIndex: src.charIndex, spin: function(){ this.pivot.rotation.y += 0.012; } });
+    showcaseItems.push({ pivot, label, charIndex: src.charIndex, spin: function(dt){ this.pivot.rotation.y += 0.72 * dt; } });
   });
   showcaseRoot.setEnabled(false);
 }
@@ -1437,11 +1522,13 @@ function enterPhotoMode() {
   $('startScreen').classList.add('hidden');
 
   // stash + hide the whole running world so only the posed model + camera remain
-  photoSaved = { fogMode: scene.fogMode, clear: scene.clearColor.clone(), skybox: skybox && skybox.isEnabled(), hidden: [] };
+  photoSaved = { fogMode: scene.fogMode, clear: scene.clearColor.clone(), skybox: skybox && skybox.isEnabled(),
+                 iosSky: iosSkyDome && iosSkyDome.isEnabled(), hidden: [] };
   [].concat(tunnelTiles, obstacles, streaks, gates, heals, unlockItem ? [unlockItem] : []).forEach(m => {
     if (!m) return; photoSaved.hidden.push([m, m.isEnabled()]); m.setEnabled(false);
   });
   if (skybox) skybox.setEnabled(false);
+  if (iosSkyDome) iosSkyDome.setEnabled(false);
   scene.fogMode = BABYLON.Scene.FOGMODE_NONE;
   scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);   // transparent → camera video shows through
 
@@ -1480,6 +1567,8 @@ function exitPhotoMode() {
   if (photoSaved) {
     photoSaved.hidden.forEach(([m, was]) => m.setEnabled(was));
     if (skybox) skybox.setEnabled(photoSaved.skybox);
+    if (iosSkyDome) iosSkyDome.setEnabled(photoSaved.iosSky);
+    if (iosSkyDome) iosSkyDome.setEnabled(photoSaved.iosSky);
     scene.fogMode = photoSaved.fogMode;
     scene.clearColor = photoSaved.clear;
     photoSaved = null;
@@ -1551,7 +1640,8 @@ async function capturePhoto() {
 
 // ---------- game flow ----------
 function resetGame() {
-  lives = 3; distance = 0; speed = BASE_SPEED * (veryHard ? VHARD_START_MULT : 1); invuln = 0; shake = 0; camRoll = 0; dodgeCombo = 0; comboTimer = 0;
+  lives = 3; distance = 0; bonus = 0; speed = BASE_SPEED * (veryHard ? VHARD_START_MULT : 1); invuln = 0; shake = 0; camRoll = 0; dodgeCombo = 0; comboTimer = 0;
+  hudCache.score = -1; hudCache.pct = -2; hudCache.lives = -1; hudCache.sp = '';   // force a full HUD refresh
   nextHealAt = 300 + Math.random()*250;
   nextUnlockCheck = 350 + Math.random()*300;
   unlockedThisRun = [];
@@ -1583,24 +1673,28 @@ function resetGame() {
   updateHud();
 }
 function startGame() {
+  ensureAudio();   // called from a user gesture — the right moment to unlock WebAudio
   leaveMenu();
   resetGame();
   $('startScreen').classList.add('hidden'); $('overScreen').classList.add('hidden');
   $('hud').classList.remove('hidden'); $('fx').style.opacity = 1;
   if (veryHard) { flashToast('💀 VERY HARD — 亜空間', '#c43cff'); flashCombo('3→6倍速 / SUBSPACE'); }
+  startBGM();
   phase = 'playing';
 }
 function gameOver() {
   phase = 'over'; $('hud').classList.add('hidden'); $('fx').style.opacity = 0;
+  overShownAt = performance.now();   // guard against a held tap/key instantly restarting
+  stopBGM();
   // clear any active ultimate so its VFX/button don't bleed into the game-over view
   if (specialActive > 0) endInvincibility();
   cineT = 0; $('cinefx').classList.remove('on'); $('specialBtn').classList.remove('show');
   if (sparkBurst) sparkBurst.manualEmitCount = 320;
-  const d = Math.floor(distance);
+  const d = Math.floor(totalScore());
   $('finalDist').textContent = d.toLocaleString() + ' m';
   const prevBest = getBest();
   const isNew = d > prevBest && d > 0;
-  if (isNew) { saveBest(d); launchConfetti(72); }
+  if (isNew) { saveBest(d); launchConfetti(72); sfxRecord(); } else sfxOver();
   $('newRecord').classList.toggle('hidden', !isNew);
   $('bestDist').textContent = '🏆 自己ベスト ' + getBest().toLocaleString() + ' m';
   // celebrate any characters unlocked this run with a reveal + confetti
@@ -1628,6 +1722,10 @@ function pauseGame() {
   if (phase !== 'playing') return;
   phase = 'paused';
   endPointer();                       // drop any in-progress swipe so the dragon holds still
+  // freeze particle VFX too — update() restores the emit rates on the next played frame
+  if (specialAura) specialAura.emitRate = 0;
+  if (fireTrail) fireTrail.emitRate = 0;
+  stopBGM();
   $('specialBtn').classList.remove('show');   // hidden while paused; restored on resume
   $('pauseScreen').classList.remove('hidden');
 }
@@ -1636,33 +1734,51 @@ function resumeGame() {
   $('pauseScreen').classList.add('hidden');
   if (hasSpecial && cineT <= 0 && specialActive <= 0) $('specialBtn').classList.add('show');
   last = performance.now();           // avoid a big dt jump on the first resumed frame
+  startBGM();
   phase = 'playing';
 }
 function quitToMenu() {
   $('pauseScreen').classList.add('hidden');
   $('hud').classList.add('hidden');
   $('fx').style.opacity = 0;
+  stopBGM();
   if (specialActive > 0) endInvincibility();
   hasSpecial = false; cineT = 0; $('cinefx').classList.remove('on'); $('specialBtn').classList.remove('show');
   enterMenu();
 }
+// updateHud runs every frame, so only touch the DOM when a value actually changed —
+// the old innerHTML-rebuild-per-frame version churned layout + GC for nothing.
+const hudCache = { score: -1, pct: -2, lives: -1, sp: '' };
 function updateHud() {
-  $('dist').innerHTML = 'DISTANCE<b>' + Math.floor(distance).toLocaleString() + ' m</b><i id="bestPct"></i>';
+  const sc = Math.floor(totalScore());
+  if (sc !== hudCache.score) {
+    hudCache.score = sc;
+    $('distVal').textContent = sc.toLocaleString() + ' m';
+  }
   // show how far we are vs. the best (only when a best exists)
   const bp = $('bestPct');
   if (bp) {
-    if (runStartBest > 0) {
-      const pct = Math.floor(distance / runStartBest * 100);
-      bp.textContent = (pct >= 100 ? '🏆 自己ベスト ' : '🎯 自己ベストの ') + pct + '%';
-      bp.className = 'show' + (pct >= 100 ? ' over' : '');
-    } else {
-      bp.className = '';
+    const pct = runStartBest > 0 ? Math.floor(sc / runStartBest * 100) : -1;
+    if (pct !== hudCache.pct) {
+      hudCache.pct = pct;
+      if (pct >= 0) {
+        bp.textContent = (pct >= 100 ? '🏆 自己ベスト ' : '🎯 自己ベストの ') + pct + '%';
+        bp.className = 'show' + (pct >= 100 ? ' over' : '');
+      } else {
+        bp.className = '';
+      }
     }
   }
-  $('lives').textContent = '❤️'.repeat(Math.max(0,lives)) + '🖤'.repeat(Math.max(0,3 - lives));
-  const mult = speed / BASE_SPEED; const sp = $('speed');
-  sp.textContent = 'SPEED ' + mult.toFixed(1) + 'x'; sp.classList.toggle('boost', mult > 2.2);
-  // invincibility countdown
+  if (lives !== hudCache.lives) {
+    hudCache.lives = lives;
+    $('lives').textContent = '❤️'.repeat(Math.max(0,lives)) + '🖤'.repeat(Math.max(0,3 - lives));
+  }
+  const mult = speed / BASE_SPEED, spTxt = 'SPEED ' + mult.toFixed(1) + 'x';
+  if (spTxt !== hudCache.sp) {
+    hudCache.sp = spTxt;
+    const sp = $('speed'); sp.textContent = spTxt; sp.classList.toggle('boost', mult > 2.2);
+  }
+  // invincibility countdown (only animates while active)
   const stEl = $('specialTimer');
   if (specialActive > 0) {
     stEl.classList.add('show');
@@ -1683,7 +1799,8 @@ function flashCombo(text) {
 }
 function showCombo() {
   if (dodgeCombo < 5 || dodgeCombo % 5 !== 0) return;
-  const el = $('combo'); el.textContent = '🔥 ' + dodgeCombo + ' COMBO';
+  // every 5th dodge pays out a distance bonus (added in update()) — show it
+  const el = $('combo'); el.textContent = '🔥 ' + dodgeCombo + ' COMBO +' + dodgeCombo + 'm';
   el.style.opacity = 1; clearTimeout(el._t); el._t = setTimeout(() => el.style.opacity = 0, 800);
 }
 // Rain a burst of celebratory emoji down the screen, then clean them up.
@@ -1704,6 +1821,7 @@ function launchConfetti(n) {
 }
 // Fired the instant the player overtakes their previous best, mid-run.
 function celebrateNewBest() {
+  sfxRecord();
   if (sparkBurst) sparkBurst.manualEmitCount = 520;
   if (pipeline) pipeline.chromaticAberration.aberrationAmount = 35;
   flashToast('🎉 自己ベスト更新！', '#ffd24a');
@@ -1713,6 +1831,7 @@ function celebrateNewBest() {
 }
 function hit() {
   lives--; invuln = INVULN_TIME; shake = 0.9; dodgeCombo = 0;
+  sfxHit();
   if (sparkBurst) sparkBurst.manualEmitCount = 160;
   if (pipeline) pipeline.chromaticAberration.aberrationAmount = 45;
   $('hitfx').style.opacity = 1; setTimeout(() => $('hitfx').style.opacity = 0, 200);
@@ -1722,6 +1841,7 @@ function hit() {
 }
 function pickupHeal(h) {
   h.metadata.active = false; h.setEnabled(false);
+  sfxHeal();
   if (sparkBurst) sparkBurst.manualEmitCount = 120;
   $('healfx').style.opacity = 1; setTimeout(() => $('healfx').style.opacity = 0, 220);
   if (lives < 3) { lives++; flashToast('💚 +1 LIFE', '#46ff8c'); }
@@ -1730,6 +1850,7 @@ function pickupHeal(h) {
 }
 function pickupUnlockItem() {
   unlockItem.metadata.active = false; unlockItem.setEnabled(false);
+  sfxUnlock();
   if (sparkBurst) sparkBurst.manualEmitCount = 300;
   if (pipeline) pipeline.chromaticAberration.aberrationAmount = 35;
   const f = $('bestfx'); f.style.opacity = 1; setTimeout(() => f.style.opacity = 0, 500);
@@ -1749,6 +1870,7 @@ function pickupUnlockItem() {
 function pickupSpecialItem() {
   specialItem.metadata.active = false; specialItem.setEnabled(false);
   if (specialItemsLeft > 0) specialItemsLeft--;   // 取得した分だけ残り出現回数を減らす(2個でゼロ→以後出現しない)
+  sfxCharge();
   if (sparkBurst) sparkBurst.manualEmitCount = 240;
   hasSpecial = true;
   $('specialBtn').classList.add('show');
@@ -1761,6 +1883,7 @@ function pickupSpecialItem() {
 function fireSpecial() {
   if (!hasSpecial || phase !== 'playing' || cineT > 0 || specialActive > 0) return;
   hasSpecial = false;
+  sfxFire();
   $('specialBtn').classList.remove('show');
   cineT = SPECIAL_CINE;
   $('cinefx').classList.add('on');
@@ -1771,6 +1894,7 @@ function fireSpecial() {
 // a screen-aura overlay, the worn energy ring, and a streaming aura.
 function beginInvincibility() {
   specialActive = SPECIAL_TIME;
+  sfxBlast();
   $('cinefx').classList.remove('on');
   $('specialfx').classList.add('on');
   if (auraRing) auraRing.setEnabled(true);
@@ -1808,7 +1932,7 @@ function update(dt) {
   if (phase === 'intro') return updateIntro(dt, tms);
   if (phase === 'menu') {
     // arc camera is mouse-controlled; just keep the showcase models turning
-    for (const it of showcaseItems) it.spin();
+    for (const it of showcaseItems) it.spin(dt);
     animateAmbient(dt, tms, BASE_SPEED*0.4);
     return;
   }
@@ -1825,9 +1949,10 @@ function update(dt) {
   const startMult = veryHard ? VHARD_START_MULT : 1;
   const maxMult   = veryHard ? VHARD_MAX_MULT   : MAX_SPEED / BASE_SPEED;
   speed = BASE_SPEED * Math.min(maxMult, startMult + (distance / 100) * 0.16);
+  const prevZ = dragonRoot.position.z;   // where the player WAS — for swept (tunnel-proof) hit tests
   distance += speed * dt;
   // the moment we pass the previous best, throw a celebration (once per run)
-  if (!beatBestFired && runStartBest > 0 && distance > runStartBest) { beatBestFired = true; celebrateNewBest(); }
+  if (!beatBestFired && runStartBest > 0 && totalScore() > runStartBest) { beatBestFired = true; celebrateNewBest(); }
   // Very Hard is locked to the subspace-like stage; normal advances 1st→2nd→3rd.
   applyStage(veryHard ? VHARD_STAGE : stageForDistance(distance), true);
   const dragZ = distance, boost = speed / BASE_SPEED;
@@ -1887,12 +2012,14 @@ function update(dt) {
   else if (dragonFacing) dragonFacing.setEnabled(true);
   if (comboTimer > 0) { comboTimer -= dt; if (comboTimer <= 0) dodgeCombo = 0; }
 
-  // obstacles
+  // obstacles — hit tests sweep the z-range covered THIS frame [prevZ-HIT_Z, dragZ+HIT_Z]:
+  // at low FPS + high speed the player advances more than the hit window in a single
+  // frame, so a point-in-window test let enemies slip through between frames.
   for (const m of obstacles) {
-    m.rotation.y += m.metadata.spin; m.rotation.x += m.metadata.spin*0.5;
+    m.rotation.y += m.metadata.spin * dt; m.rotation.x += m.metadata.spin * 0.5 * dt;
     if (m.position.z < dragZ - RECYCLE_BEHIND) placeObstacle(m, dragZ + SPAWN_AHEAD);
     const dz = m.position.z - dragZ;
-    if (Math.abs(dz) < HIT_Z) {
+    if (m.position.z > prevZ - HIT_Z && dz < HIT_Z) {
       const dx = m.position.x - dragonRoot.position.x, dy = m.position.y - dragonRoot.position.y;
       const r2 = dx*dx + dy*dy;
       if (specialActive > 0) {
@@ -1907,7 +2034,11 @@ function update(dt) {
         }
       } else if (invuln <= 0 && r2 < HIT_R*HIT_R) { hit(); placeObstacle(m, dragZ + SPAWN_AHEAD); continue; }
     }
-    if (!m.metadata.scored && dz < -0.5 && dz > -3.0) { m.metadata.scored = true; dodgeCombo++; comboTimer = 2.0; showCombo(); }
+    if (!m.metadata.scored && dz < -0.5) {
+      m.metadata.scored = true; dodgeCombo++; comboTimer = 2.0;
+      if (dodgeCombo % 5 === 0) { bonus += dodgeCombo; sfxCombo(); }   // combo pays out score
+      showCombo();
+    }
   }
 
   // heal spawn + pickup
@@ -1916,12 +2047,13 @@ function update(dt) {
     if (!h.metadata.active) continue;
     h.rotation.y += dt*2.0; h.metadata.ring.rotation.z += dt*1.5;
     const s = 1 + Math.sin(tms*0.006)*0.12; h.scaling.set(s,s,s);
-    if (h.position.z < dragZ - 6) { h.metadata.active = false; h.setEnabled(false); continue; }
-    const dz = h.position.z - dragZ;
-    if (Math.abs(dz) < 2.2) {
+    // pickup test FIRST, swept over this frame's travel — a fast frame must not
+    // skip the pickup window and drop straight into the despawn branch
+    if (h.position.z > prevZ - 2.2 && h.position.z < dragZ + 2.2) {
       const dx = h.position.x - dragonRoot.position.x, dy = h.position.y - dragonRoot.position.y;
-      if (dx*dx + dy*dy < 5.5) pickupHeal(h);
+      if (dx*dx + dy*dy < 5.5) { pickupHeal(h); continue; }
     }
+    if (h.position.z < dragZ - 6) { h.metadata.active = false; h.setEnabled(false); }
   }
 
   // rare glowing item: roll for it at spaced-out checkpoints, but only while there
@@ -1935,14 +2067,10 @@ function update(dt) {
     const s = 1 + Math.sin(tms*0.007)*0.16; unlockItem.scaling.set(s,s,s);
     // shimmer the emissive through warm gold tones so it visibly "shines"
     const g = 0.7 + Math.sin(tms*0.012)*0.3; unlockItem.metadata.mat.emissiveColor.set(1.0, g, 0.25 + 0.15*Math.sin(tms*0.02));
-    if (unlockItem.position.z < dragZ - 6) { unlockItem.metadata.active = false; unlockItem.setEnabled(false); }
-    else {
-      const dz = unlockItem.position.z - dragZ;
-      if (Math.abs(dz) < 2.4) {
-        const dx = unlockItem.position.x - dragonRoot.position.x, dy = unlockItem.position.y - dragonRoot.position.y;
-        if (dx*dx + dy*dy < 6.5) pickupUnlockItem();
-      }
-    }
+    if (unlockItem.position.z > prevZ - 2.4 && unlockItem.position.z < dragZ + 2.4) {
+      const dx = unlockItem.position.x - dragonRoot.position.x, dy = unlockItem.position.y - dragonRoot.position.y;
+      if (dx*dx + dy*dy < 6.5) pickupUnlockItem();
+    } else if (unlockItem.position.z < dragZ - 6) { unlockItem.metadata.active = false; unlockItem.setEnabled(false); }
   }
 
   // 必殺技 item: roll at checkpoints. Only offer one when the player has no charged
@@ -1956,14 +2084,10 @@ function update(dt) {
     specialItem.rotation.y += dt*2.4; specialItem.metadata.ring.rotation.z += dt*2.2; specialItem.metadata.ring2.rotation.y += dt*2.6;
     const s = 1 + Math.sin(tms*0.008)*0.18; specialItem.scaling.set(s,s,s);
     const p = 0.5 + 0.5*Math.sin(tms*0.015); specialItem.metadata.mat.emissiveColor.set(0.45 + 0.45*p, 0.3 + 0.2*p, 1.0);
-    if (specialItem.position.z < dragZ - 6) { specialItem.metadata.active = false; specialItem.setEnabled(false); }
-    else {
-      const dz = specialItem.position.z - dragZ;
-      if (Math.abs(dz) < 2.4) {
-        const dx = specialItem.position.x - dragonRoot.position.x, dy = specialItem.position.y - dragonRoot.position.y;
-        if (dx*dx + dy*dy < 6.5) pickupSpecialItem();
-      }
-    }
+    if (specialItem.position.z > prevZ - 2.4 && specialItem.position.z < dragZ + 2.4) {
+      const dx = specialItem.position.x - dragonRoot.position.x, dy = specialItem.position.y - dragonRoot.position.y;
+      if (dx*dx + dy*dy < 6.5) pickupSpecialItem();
+    } else if (specialItem.position.z < dragZ - 6) { specialItem.metadata.active = false; specialItem.setEnabled(false); }
   }
 
   const gc = stageTgt.gate;
@@ -2042,17 +2166,6 @@ function updateIntro(dt, tms) {
   if (introT >= INTRO_DUR) enterMenu();
 }
 
-function updateMenuCam(dt, tms) {
-  dragonRoot.position.set(Math.sin(tms*0.0006)*2, Y_CENTER + Math.sin(tms*0.0015)*0.3, 0);
-  dragonBank.rotation.z = Math.sin(tms*0.0009)*0.12;
-  dragonGlow.position.copyFrom(dragonRoot.position);
-  camera.position.x += (Math.sin(tms*0.0004)*3 - camera.position.x)*Math.min(1,dt*3);
-  camera.position.y += (Y_CENTER + 3 - camera.position.y)*Math.min(1,dt*3);
-  camera.position.z = -13; camera.rotation.z = 0;
-  camera.setTarget(new BABYLON.Vector3(dragonRoot.position.x*0.4, Y_CENTER, 16));
-  camera.fov = 1.18;
-}
-
 function spinHeals(dt) { for (const h of heals) if (h.metadata.active) h.rotation.y += dt*2; }
 
 function animateAmbient(dt, tms, spd) {
@@ -2065,47 +2178,56 @@ function animateAmbient(dt, tms, spd) {
   }
 }
 
-// ---------- best score (cookie) ----------
-const BEST_COOKIE = 'dragondash_best';
+// ---------- persistence (localStorage, with legacy-cookie migration) ----------
+// Best / unlocks / selected character used to live in cookies, but Chrome caps a
+// cookie's lifetime at ~400 days (silently losing long-term saves) and file://
+// pages may have no cookies at all. localStorage is the primary store now; old
+// cookie values are still read as a fallback and migrated forward at boot.
+const store = {
+  get(k) {
+    try { const v = localStorage.getItem('dd_' + k); if (v !== null) return v; } catch (_) {}
+    const m = document.cookie.match(new RegExp('(?:^|;\\s*)dragondash_' + k + '=([^;]+)'));
+    return m ? decodeURIComponent(m[1]) : null;
+  },
+  set(k, v) {
+    try { localStorage.setItem('dd_' + k, String(v)); return; } catch (_) {}
+    document.cookie = 'dragondash_' + k + '=' + encodeURIComponent(v) + ';max-age=315360000;path=/;SameSite=Lax';
+  }
+};
+['best', 'char', 'unlocked'].forEach(k => { const v = store.get(k); if (v !== null) store.set(k, v); });
+
+// ---------- best score ----------
 function getBest() {
-  const m = document.cookie.match(/(?:^|;\s*)dragondash_best=(\d+)/);
-  return m ? parseInt(m[1], 10) : 0;
+  const v = parseInt(store.get('best'), 10);
+  return isNaN(v) ? 0 : v;
 }
-function saveBest(v) {
-  document.cookie = BEST_COOKIE + '=' + v + ';max-age=315360000;path=/;SameSite=Lax';
-}
+function saveBest(v) { store.set('best', v); }
 function renderBest() {
   const el = $('menuBest');
   if (el) el.textContent = '🏆 自己ベスト ' + getBest().toLocaleString() + ' m';
 }
 
-// ---------- character selection (cookie) ----------
-const CHAR_COOKIE = 'dragondash_char';
+// ---------- character selection ----------
 function getSelectedCharId() {
-  const m = document.cookie.match(/(?:^|;\s*)dragondash_char=([^;]+)/);
-  if (m) { const v = decodeURIComponent(m[1]); if (CHARACTERS.some(c => c.id === v)) return v; }
+  const v = store.get('char');
+  if (v && CHARACTERS.some(c => c.id === v)) return v;
   return CHARACTERS[0].id;   // default: ドラゴン
 }
-function saveSelectedCharId(id) {
-  document.cookie = CHAR_COOKIE + '=' + encodeURIComponent(id) + ';max-age=315360000;path=/;SameSite=Lax';
-}
+function saveSelectedCharId(id) { store.set('char', id); }
 
-// ---------- character unlocks (cookie) ----------
+// ---------- character unlocks ----------
 // The dragon (index 0) is always playable; every other character starts LOCKED
-// and is unlocked by grabbing a rare glowing item mid-run. The unlocked set is
-// remembered in a cookie as a comma-separated list of character ids.
-const UNLOCK_COOKIE = 'dragondash_unlocked';
+// and is unlocked by grabbing a glowing item mid-run. The unlocked set is
+// remembered as a comma-separated list of character ids.
 function getUnlockedIds() {
   const ids = ['dragon'];   // the dragon is unlocked from the start
-  const m = document.cookie.match(/(?:^|;\s*)dragondash_unlocked=([^;]+)/);
-  if (m) decodeURIComponent(m[1]).split(',').forEach(v => {
-    if (v && CHARACTERS.some(c => c.id === v) && ids.indexOf(v) < 0) ids.push(v);
+  const v = store.get('unlocked');
+  if (v) v.split(',').forEach(x => {
+    if (x && CHARACTERS.some(c => c.id === x) && ids.indexOf(x) < 0) ids.push(x);
   });
   return ids;
 }
-function saveUnlockedIds(ids) {
-  document.cookie = UNLOCK_COOKIE + '=' + encodeURIComponent(ids.join(',')) + ';max-age=315360000;path=/;SameSite=Lax';
-}
+function saveUnlockedIds(ids) { store.set('unlocked', ids.join(',')); }
 function isCharUnlocked(id) { return getUnlockedIds().indexOf(id) >= 0; }
 // Indices of still-locked characters. `loadedOnly` restricts to ones whose model
 // has actually finished loading (matters on iOS, which loads a capped subset) so
@@ -2125,6 +2247,73 @@ function unlockRandomCharacter() {
   const idx = pool[Math.floor(Math.random() * pool.length)];
   const ids = getUnlockedIds(); ids.push(CHARACTERS[idx].id); saveUnlockedIds(ids);
   return idx;
+}
+
+// ---------- sound (WebAudio, fully synthesized — no asset files, works offline) ----------
+let audioCtx = null, bgmTimer = null, bgmStep = 0;
+let soundOn = store.get('sound') !== '0';   // default ON; the choice is persisted
+function ensureAudio() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) {}
+  }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+}
+// one enveloped oscillator note; `slide` glides the pitch to that Hz over the note
+function tone(freq, dur, o) {
+  if (!soundOn || !audioCtx || audioCtx.state !== 'running') return;
+  o = o || {};
+  try {
+    const t0 = audioCtx.currentTime + (o.delay || 0);
+    const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+    osc.type = o.type || 'sine';
+    osc.frequency.setValueAtTime(freq, t0);
+    if (o.slide) osc.frequency.exponentialRampToValueAtTime(Math.max(20, o.slide), t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(o.vol || 0.15, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(g); g.connect(audioCtx.destination);
+    osc.start(t0); osc.stop(t0 + dur + 0.05);
+  } catch (_) {}
+}
+function sfxUi()      { ensureAudio(); tone(760, 0.06, { type:'square', vol:0.06 }); }
+function sfxHit()     { tone(200, 0.25, { type:'sawtooth', vol:0.22, slide:60 }); tone(90, 0.3, { type:'square', vol:0.18, slide:40, delay:0.02 }); }
+function sfxHeal()    { tone(660, 0.12, { vol:0.14 }); tone(990, 0.18, { vol:0.14, delay:0.09 }); }
+function sfxUnlock()  { [660, 880, 1100, 1320].forEach((f, i) => tone(f, 0.14, { vol:0.12, delay:i*0.09 })); }
+function sfxCharge()  { tone(300, 0.5, { type:'sawtooth', vol:0.1, slide:1200 }); tone(1200, 0.2, { vol:0.12, delay:0.45 }); }
+function sfxFire()    { tone(150, 1.0, { type:'sawtooth', vol:0.16, slide:900 }); }
+function sfxBlast()   { tone(1000, 0.6, { type:'sawtooth', vol:0.2, slide:120 }); tone(70, 0.8, { type:'square', vol:0.2, slide:35 }); }
+function sfxShatter() { tone(1400, 0.16, { type:'square', vol:0.1, slide:400 }); }
+function sfxCombo()   { tone(880, 0.08, { vol:0.1 }); tone(1174, 0.1, { vol:0.1, delay:0.07 }); }
+function sfxOver()    { [392, 311, 262, 196].forEach((f, i) => tone(f, 0.28, { type:'triangle', vol:0.14, delay:i*0.18 })); }
+function sfxRecord()  { [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.16, { type:'triangle', vol:0.14, delay:i*0.1 })); tone(1568, 0.4, { vol:0.12, delay:0.42 }); }
+// minimal in-game BGM: a quiet pentatonic arpeggio loop, melody + a bass note per bar
+const BGM_SCALE = [220, 246.9, 293.7, 329.6, 392, 440];
+const BGM_SEQ = [0, 2, 4, 2, 3, 2, 1, 2, 0, 2, 4, 5, 4, 3, 2, 1];
+function bgmTick() {
+  if (!soundOn || !audioCtx || phase !== 'playing') return;
+  const i = bgmStep++ % BGM_SEQ.length;
+  tone(BGM_SCALE[BGM_SEQ[i]] * 2, 0.16, { type:'triangle', vol:0.045 });
+  if (i % 4 === 0) tone(BGM_SCALE[BGM_SEQ[i]] / 2, 0.3, { vol:0.06 });
+}
+function startBGM() {
+  if (!soundOn) return;
+  ensureAudio();
+  if (!audioCtx) return;
+  stopBGM();
+  bgmStep = 0;
+  bgmTimer = setInterval(bgmTick, 200);
+}
+function stopBGM() { if (bgmTimer) { clearInterval(bgmTimer); bgmTimer = null; } }
+function updateSoundBtns() {
+  const t = soundOn ? '🔊 サウンド ON' : '🔇 サウンド OFF';
+  ['soundBtn', 'soundBtn2'].forEach(id => { const el = $(id); if (el) el.textContent = t; });
+}
+function toggleSound() {
+  soundOn = !soundOn;
+  store.set('sound', soundOn ? '1' : '0');
+  updateSoundBtns();
+  if (!soundOn) stopBGM();
+  else { ensureAudio(); if (phase === 'playing') startBGM(); sfxUi(); }
 }
 
 // Build the tappable character chips on the start screen. The currently-selected
@@ -2153,15 +2342,40 @@ function renderCharPicker() {
     el.appendChild(chip);
   });
 }
-function selectCharacter(i) {
-  if (!charTemplates[i]) return;   // model not loaded yet
-  if (!isCharUnlocked(CHARACTERS[i].id)) return;   // still locked
+function applySelectedCharacter(i) {
   selectedCharIndex = i;
   saveSelectedCharId(CHARACTERS[i].id);
   setPlayerCharacter(i);
   setShowcaseHighlight(i);
   document.querySelectorAll('#roster .char-chip').forEach(ch => ch.classList.toggle('sel', +ch.dataset.idx === i));
+  sfxUi();
   notify((CHARACTERS[i].emoji ? CHARACTERS[i].emoji + ' ' : '') + CHARACTERS[i].name + ' で出撃！');
+}
+const charLoading = {};
+function selectCharacter(i) {
+  if (!isCharUnlocked(CHARACTERS[i].id)) return;   // still locked
+  if (!charTemplates[i]) {
+    // model not loaded yet (iOS boots with a capped subset) — fetch it on demand
+    // instead of silently ignoring the tap
+    if (charLoading[i]) return;
+    charLoading[i] = true;
+    notify('⏳ ' + CHARACTERS[i].name + ' を読み込み中…');
+    importCharacterCore(i).then(() => {
+      charLoading[i] = false;
+      applySelectedCharacter(i);
+      if (phase === 'menu') {   // let the new model join the showcase ring too
+        rebuildShowcase();
+        if (showcaseRoot) showcaseRoot.setEnabled(true);
+        setShowcaseHighlight(i);
+      }
+    }).catch(err => {
+      charLoading[i] = false;
+      console.warn('on-demand char load failed', CHARACTERS[i].file, err);
+      notify('⚠️ 読み込みに失敗しました。通信状況をご確認ください');
+    });
+    return;
+  }
+  applySelectedCharacter(i);
 }
 
 // ---------- game mode (Very Hard) ----------
@@ -2197,12 +2411,15 @@ addEventListener('keydown', e => {
     if (phase === 'playing') pauseGame();
     else if (phase === 'paused') resumeGame();
   }
-  // fire the 必殺技 with F / Shift when one is charged
-  if ((k === 'f' || k === 'shift') && phase === 'playing' && hasSpecial) { e.preventDefault(); fireSpecial(); }
+  // fire the 必殺技 with F when one is charged (Shift was dropped: it's a modifier
+  // key, and five presses triggers the Windows Sticky-Keys dialog mid-game)
+  if (k === 'f' && phase === 'playing' && hasSpecial) { e.preventDefault(); fireSpecial(); }
   if ((k === ' ' || k === 'enter')) {
     if (phase === 'intro') { introT = INTRO_DUR; }
-    else if (phase === 'menu' || phase === 'over') {
-      startGame();
+    else if (phase === 'menu') { startGame(); }
+    else if (phase === 'over') {
+      // a key still held from the moment of the crash must not skip the score screen
+      if (performance.now() - overShownAt > 600) startGame();
     }
     else if (phase === 'paused') { resumeGame(); }
   }
@@ -2228,26 +2445,43 @@ function updateDragVel(curX, curY) {
   dragVY = -axisVel((curY - anchorY) / r.height);   // screen-down → world-down
 }
 canvas.addEventListener('pointerdown', e => {
+  ensureAudio();   // any canvas touch is a user gesture — the moment WebAudio may unlock
   if (phase === 'photo') return;   // let the ArcRotateCamera own the gesture in photo mode
+  if (!e.isPrimary) return;        // a second finger must not re-anchor the swipe
   pointerDown = true; anchorX = e.clientX; anchorY = e.clientY;
   dragVX = dragVY = 0;
   if (canvas.setPointerCapture) { try { canvas.setPointerCapture(e.pointerId); } catch (_) {} }
 });
 canvas.addEventListener('pointermove', e => {
-  if (!pointerDown || phase !== 'playing') return;
+  if (!e.isPrimary || !pointerDown || phase !== 'playing') return;
   updateDragVel(e.clientX, e.clientY);
 });
 const endPointer = () => { pointerDown = false; dragVX = dragVY = 0; };
-addEventListener('pointerup', endPointer);
-addEventListener('pointercancel', endPointer);
+addEventListener('pointerup', e => { if (e.isPrimary) endPointer(); });
+addEventListener('pointercancel', e => { if (e.isPrimary) endPointer(); });
 // block long-press context menu / iOS callout so dragging feels native
 canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+// losing focus / hiding the tab must not leave keys latched or a swipe stuck —
+// and a run the player can't see should pause itself rather than crash blind
+function releaseAllInput() { for (const k in keys) keys[k] = false; endPointer(); }
+addEventListener('blur', releaseAllInput);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    releaseAllInput();
+    if (phase === 'playing') pauseGame();
+  }
+});
 
 // tap-to-start on the game-over screen (buttons still work too). The menu does NOT
 // start on a stray tap — the panel is full of controls (character / mode pickers),
 // so a deliberate press of the スタート button is required there to avoid mis-starts.
+// The short delay guard keeps the pointerup of a swipe that was still in progress
+// at the moment of the crash from instantly skipping the score screen.
 const tapStart = e => { e.preventDefault(); startGame(); };
-$('overScreen').addEventListener('pointerup', e => { if (phase === 'over') tapStart(e); });
+$('overScreen').addEventListener('pointerup', e => {
+  if (phase === 'over' && performance.now() - overShownAt > 600) tapStart(e);
+});
 $('startBtn').onclick = startGame; $('retryBtn').onclick = startGame;
 // pause controls (stopPropagation so the tap doesn't fall through to the canvas swipe)
 $('pauseBtn').addEventListener('pointerup', e => e.stopPropagation());
@@ -2324,10 +2558,12 @@ function loadImage(src) {
 // characters stay readable instead of washing out against the bright magma sky.
 function captureCharImage() {
   const savedSky = skybox && skybox.isEnabled();
+  const savedIosSky = iosSkyDome && iosSkyDome.isEnabled();
   const savedClear = scene.clearColor.clone();
   const savedFog = scene.fogMode;
   try {
     if (skybox) skybox.setEnabled(false);
+    if (iosSkyDome) iosSkyDome.setEnabled(false);
     scene.fogMode = BABYLON.Scene.FOGMODE_NONE;
     scene.clearColor = new BABYLON.Color4(0.06, 0.03, 0.05, 1);   // dark warm backdrop
     scene.render();
@@ -2336,6 +2572,7 @@ function captureCharImage() {
   catch (_) { return null; }
   finally {
     if (skybox) skybox.setEnabled(savedSky);
+    if (iosSkyDome) iosSkyDome.setEnabled(savedIosSky);
     scene.clearColor = savedClear;
     scene.fogMode = savedFog;
     scene.render();   // restore the live view
@@ -2526,10 +2763,10 @@ async function downloadScoreImage() {
   scoreBusy = true;
   notify('🖼️ スコア画像を作成中…');
   try {
-    const cv = await buildScoreImage({ distance: distance, isNew: !$('newRecord').classList.contains('hidden') });
+    const cv = await buildScoreImage({ distance: totalScore(), isNew: !$('newRecord').classList.contains('hidden') });
     const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
     if (!blob) throw new Error('toBlob failed');
-    const fname = 'dragon-dash-score-' + Math.floor(distance) + 'm.png';
+    const fname = 'dragon-dash-score-' + Math.floor(totalScore()) + 'm.png';
 
     try {
       const file = new File([blob], fname, { type: 'image/png' });
@@ -2558,7 +2795,7 @@ function bindAction(id, fn) {
   const el = $(id);
   if (!el) return;
   el.addEventListener('pointerup', e => e.stopPropagation());
-  el.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); fn(); });
+  el.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); ensureAudio(); fn(); });
 }
 // ---------- help / instructions overlay ----------
 function openHelp() { $('helpScreen').classList.remove('hidden'); }
@@ -2573,6 +2810,11 @@ bindAction('modeNormal', () => selectMode(false));
 bindAction('modeVhard', () => selectMode(true));
 bindAction('shareBtn', shareApp);
 bindAction('shareBtn2', shareApp);
+// game-over → straight back to the menu (e.g. to pick a freshly unlocked character)
+bindAction('menuBtn2', () => { $('overScreen').classList.add('hidden'); enterMenu(); });
+bindAction('soundBtn', toggleSound);
+bindAction('soundBtn2', toggleSound);
+updateSoundBtns();
 bindAction('cardBtn', () => saveOrShareCard({}));
 bindAction('scoreImgBtn', () => downloadScoreImage());
 // photo mode: the launch button lives on the menu (stop the tap-to-start bubble);
