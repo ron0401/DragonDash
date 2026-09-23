@@ -4,6 +4,7 @@
 !/.gitignore
 !/README.md
 !/game/
+!/tools/
 
 # OS / エディタ
 .DS_Store

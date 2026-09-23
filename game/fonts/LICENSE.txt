@@ -1,0 +1,7 @@
+Bundled fonts (subset by tools/build_fonts.py):
+
+- round-500.woff2 / round-800.woff2 — "M PLUS Rounded 1c" by M+ FONTS PROJECT
+- display.woff2 — "Lilita One" by Juan Montoreano
+
+Both are licensed under the SIL Open Font License, Version 1.1.
+https://openfontlicense.org
