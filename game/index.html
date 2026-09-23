@@ -145,7 +145,7 @@
     box-shadow: 0 6px 18px rgba(0,0,0,.35); transition: transform .12s, background .12s; touch-action: manipulation; }
   #pauseBtn:hover { background: rgba(18,26,46,.7); transform: scale(1.06); }
   #pauseBtn:active { transform: scale(.96); }
-  #combo { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index:15; color:#ffd27a; font-size:15px; font-weight:800; opacity:0; transition:opacity .3s; pointer-events:none; letter-spacing:.1em;}
+  #combo { position: fixed; top: calc(92px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index:15; color:#ffd27a; font-size:15px; font-weight:800; opacity:0; transition:opacity .3s; pointer-events:none; letter-spacing:.1em;}
   /* 必殺技ボタン — アイテム取得後にだけ出現する画面下中央の大きな発動ボタン */
   #specialBtn { position: fixed; left: 50%; bottom: calc(26px + env(safe-area-inset-bottom)); transform: translateX(-50%) scale(.4);
     z-index: 16; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
@@ -219,6 +219,156 @@
                 display:flex; align-items:center; justify-content:center; }
   #shutterBtn:active { transform: scale(.92); }
   #shutterBtn[disabled] { opacity:.5; cursor:default; }
+
+  /* ===================================================================
+     REFRESH — kid-friendly chunky UI, juicy HUD, stage banners, pops
+     =================================================================== */
+  :root { --round: "Hiragino Maru Gothic ProN","Hiragino Maru Gothic Pro","M PLUS Rounded 1c","Zen Maru Gothic","Nunito","Arial Rounded MT Bold","Hiragino Sans",system-ui,-apple-system,sans-serif; }
+  html, body { font-family: var(--round); }
+  .hidden { display: none !important; }
+  .panel { border-radius: 26px; border: 2px solid rgba(255,255,255,.12);
+    background: linear-gradient(180deg, rgba(26,32,62,.88), rgba(12,15,32,.9)); }
+  .btn { border-radius: 20px; font-weight: 900; box-shadow: 0 6px 0 rgba(120,20,40,.85), 0 14px 30px rgba(255,60,80,.35); }
+  .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(120,20,40,.85), 0 8px 18px rgba(255,60,80,.3); }
+  .btn-go { font-size: 24px; padding: 14px 56px; min-height: 62px; letter-spacing: .08em;
+    background: linear-gradient(180deg,#ffb238 0%,#ff6a2f 55%,#ff2f5d 100%); animation: goPulse 1.6s ease-in-out infinite; }
+  @keyframes goPulse { 0%,100%{ transform: scale(1);} 50%{ transform: scale(1.05);} }
+  .btn-go:active { animation: none; }
+
+  /* ---- loading ---- */
+  #loadingScreen { background: radial-gradient(circle at 50% 40%, #2a1850, #0b0718 70%); }
+  #loadingScreen .ld-dragon { font-size: 72px; display:inline-block; animation: ldFly 1.2s ease-in-out infinite; filter: drop-shadow(0 0 22px rgba(255,140,60,.8)); }
+  @keyframes ldFly { 0%,100%{ transform: translateY(0) rotate(-6deg);} 50%{ transform: translateY(-14px) rotate(6deg);} }
+  #loadingScreen .bar { height: 14px; border-radius: 10px; border: 2px solid rgba(255,255,255,.2); }
+  #loadingScreen .bar > i { background: linear-gradient(90deg,#ffe24a,#ff8a2f,#ff3d5d); box-shadow: 0 0 16px rgba(255,140,60,.8); }
+
+  /* ---- HUD ---- */
+  .hud-left, .hud-right { display:flex; flex-direction:column; gap:7px; }
+  .hud-right { align-items: flex-end; }
+  .hud-box { border-radius: 18px; border: 2px solid rgba(255,255,255,.12); background: rgba(10,14,34,.5); }
+  .star-box { display:flex; align-items:center; gap:6px; padding: 5px 14px 5px 9px; transform-origin: left center; }
+  .star-box .star-ico { font-size: 24px; line-height:1; filter: drop-shadow(0 0 8px rgba(255,210,60,.95)); }
+  .star-box b { font-size: clamp(22px, 6vw, 28px); font-weight: 900; color: #ffe36a; line-height: 1.1;
+    text-shadow: 0 2px 0 #b8650a, 0 0 14px rgba(255,200,60,.6); }
+  .star-box.bump { animation: bump .22s ease-out; }
+  @keyframes bump { 0%{transform:scale(1)} 40%{transform:scale(1.2)} 100%{transform:scale(1)} }
+  #lives.shake { animation: heartShake .45s; }
+  @keyframes heartShake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-7px) rotate(-6deg)} 40%{transform:translateX(6px) rotate(5deg)} 60%{transform:translateX(-4px)} 80%{transform:translateX(3px)} }
+  #powerRow { display:flex; gap:5px; justify-content:flex-end; margin-top: 5px; }
+  #powerRow:empty { display:none; }
+  .pw { font-size: 13px; font-weight: 900; padding: 3px 9px; border-radius: 12px; color:#fff; background: rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.2); }
+  .pw.mag { background: linear-gradient(90deg,#ff5a5a,#5a8cff); }
+  .pw.shd { background: linear-gradient(90deg,#29c7ff,#2f7bff); }
+  .pw.x2  { background: linear-gradient(90deg,#ffb238,#ff5db0); }
+  /* stage progress bar (top-center, under the pause button) */
+  #stageBar { position: fixed; left: 50%; top: calc(66px + env(safe-area-inset-top)); transform: translateX(-50%); z-index: 15;
+    width: min(40vw, 190px); pointer-events: none; display:flex; align-items:center; gap: 5px; font-size: 16px; }
+  #stageBar .sbt { flex: 1; height: 10px; border-radius: 8px; background: rgba(0,0,0,.35); border: 2px solid rgba(255,255,255,.25); overflow: hidden; position: relative; }
+  #stageBar .sbt > i { position:absolute; left:0; top:0; bottom:0; width: 0%; border-radius: 8px;
+    background: linear-gradient(90deg,#ffe24a,#ff8a2f); box-shadow: 0 0 10px rgba(255,190,60,.8); }
+  #stageBar.max .sbt > i { background: linear-gradient(90deg,#8a6bff,#ff6ec7,#6ad0ff); }
+  /* in-run floating text (projected from 3D) */
+  .pop { position: fixed; z-index: 17; pointer-events: none; font-weight: 900; font-size: 19px; color: #fff; white-space: nowrap;
+    text-shadow: 0 2px 0 rgba(0,0,0,.4), 0 0 12px rgba(255,255,255,.45); animation: popUp .9s ease-out forwards; will-change: transform, opacity; }
+  .pop.gold { color:#ffe36a; } .pop.near { color:#7df3ff; font-size: 22px; } .pop.ring { color:#ff9df0; font-size: 24px; }
+  .pop.big { font-size: 30px; } .pop.smash { color:#ffb86a; font-size: 24px; }
+  @keyframes popUp { 0%{opacity:0; transform:translate(-50%,-30%) scale(.4)} 15%{opacity:1; transform:translate(-50%,-70%) scale(1.2)} 30%{transform:translate(-50%,-80%) scale(1)} 100%{opacity:0; transform:translate(-50%,-190%) scale(1)} }
+  /* stage-change banner */
+  #stageBanner { position: fixed; left: 0; right: 0; top: 24%; z-index: 16; text-align: center; pointer-events: none; opacity: 0; }
+  #stageBanner.show { animation: bannerIn 2.6s ease-out forwards; }
+  #stageBanner .sgb-e { font-size: 70px; line-height: 1; filter: drop-shadow(0 0 22px rgba(255,255,255,.6)); }
+  #stageBanner .sgb-n { font-size: 15px; font-weight: 900; letter-spacing: .4em; color: #fff; margin-top: 6px; text-shadow: 0 2px 10px rgba(0,0,0,.7); }
+  #stageBanner .sgb-t { font-size: clamp(34px, 10vw, 50px); font-weight: 900; color: #fff; line-height: 1.15;
+    text-shadow: 0 4px 0 var(--sgc, #ff7a2f), 0 6px 14px rgba(0,0,0,.55); }
+  @keyframes bannerIn { 0%{opacity:0; transform:scale(2.4)} 10%{opacity:1; transform:scale(.92)} 16%{transform:scale(1.04)} 22%{transform:scale(1)} 80%{opacity:1; transform:translateY(0)} 100%{opacity:0; transform:translateY(-40px)} }
+  /* mission-clear ribbon */
+  #missionPop { position: fixed; left: 50%; top: calc(132px + env(safe-area-inset-top)); z-index: 16; pointer-events: none;
+    transform: translate(-50%, -30px); opacity: 0; padding: 9px 18px; border-radius: 18px; white-space: nowrap; max-width: 94vw; overflow: hidden; text-overflow: ellipsis;
+    background: linear-gradient(90deg,#1fc46f,#11a0a8); border: 2px solid rgba(255,255,255,.7); box-shadow: 0 8px 24px rgba(0,0,0,.4);
+    font-weight: 900; font-size: 15px; color: #fff; transition: opacity .25s, transform .35s cubic-bezier(.2,1.5,.5,1); }
+  #missionPop.show { opacity: 1; transform: translate(-50%, 0); }
+  #missionPop small { display:block; font-size: 11px; opacity: .9; letter-spacing: .08em; }
+  /* the 3 missions briefly shown at the start of a run */
+  #missionCard { position: fixed; left: 50%; top: calc(132px + env(safe-area-inset-top)); z-index: 16; pointer-events: none;
+    transform: translateX(-50%) scale(.8); opacity: 0; transition: opacity .3s, transform .4s cubic-bezier(.2,1.5,.5,1);
+    background: rgba(10,14,34,.78); border: 2px solid rgba(255,255,255,.18); border-radius: 18px; padding: 10px 14px; min-width: min(300px, 86vw); backdrop-filter: blur(6px); }
+  #missionCard.show { opacity: 1; transform: translateX(-50%) scale(1); }
+  #missionCard .mc-h { font-size: 12px; font-weight: 900; color: #ffd27a; letter-spacing: .12em; text-align:center; margin-bottom: 4px; }
+  /* shield / hit / star vignette flashes */
+  #shieldfx { position: fixed; inset: 0; z-index: 11; pointer-events: none; opacity: 0; transition: opacity .3s;
+    background: radial-gradient(ellipse at 50% 50%, transparent 45%, rgba(60,200,255,.45) 100%); }
+
+  /* ---- menu (start screen) ---- */
+  #startScreen.menu { justify-content: space-between; background: linear-gradient(to top, rgba(6,6,20,.92) 0%, rgba(6,6,20,.35) 42%, transparent 58%, rgba(6,6,20,.35) 100%); }
+  .menu-top { pointer-events: none; text-align: center; padding: 6px 12px 0; }
+  .logo { display: inline-flex; flex-direction: column; align-items: center; line-height: .88; animation: logoFloat 3s ease-in-out infinite; }
+  .logo .lg-row { display:flex; align-items:center; gap: 6px; }
+  .logo .lg-d { font-size: clamp(40px, 12vw, 60px); filter: drop-shadow(0 0 18px rgba(255,140,60,.8)); animation: logoWiggle 2.2s ease-in-out infinite; display:inline-block; }
+  .logo .lg-t { font-size: clamp(44px, 13.5vw, 72px); font-weight: 900; letter-spacing: .03em; font-style: italic;
+    background: linear-gradient(180deg,#fffbd0 0%,#ffd23a 38%,#ff7a1f 70%,#e0203f 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 4px 0 #6b1208) drop-shadow(0 0 22px rgba(255,110,40,.65)); }
+  .logo .lg-t.t2 { background: linear-gradient(180deg,#e9fbff 0%,#7fe3ff 40%,#3d8bff 72%,#6a2fe0 100%); -webkit-background-clip: text; background-clip: text;
+    filter: drop-shadow(0 4px 0 #1a1560) drop-shadow(0 0 22px rgba(80,160,255,.65)); margin-top: -2px; }
+  @keyframes logoFloat { 0%,100%{ transform: translateY(0);} 50%{ transform: translateY(-6px);} }
+  @keyframes logoWiggle { 0%,100%{ transform: rotate(-8deg);} 50%{ transform: rotate(8deg) translateY(-4px);} }
+  .menu-stats { display:flex; gap: 7px; justify-content: center; flex-wrap: wrap; margin-top: 10px; }
+  .stat-pill { font-size: 13px; font-weight: 900; color: #fff; padding: 5px 12px; border-radius: 20px;
+    background: rgba(10,14,34,.6); border: 2px solid rgba(255,255,255,.16); backdrop-filter: blur(6px); }
+  .stat-pill.gold { color: #ffe36a; }
+  #startScreen.menu .panel { padding: 12px 16px 14px; }
+  #startScreen.menu .panel .btn-go { margin-top: 10px; }
+  .rank-row { display:flex; align-items:center; gap: 9px; margin: 2px 2px 6px; }
+  .rank-badge { font-size: 13px; font-weight: 900; color: #fff; white-space: nowrap; padding: 4px 10px; border-radius: 14px;
+    background: linear-gradient(90deg,#7a5cff,#ff5db0); box-shadow: 0 3px 0 rgba(60,20,110,.8); }
+  .rank-prog { flex: 1; display:flex; gap: 4px; }
+  .rank-prog i { flex: 1; height: 9px; border-radius: 6px; background: rgba(255,255,255,.14); }
+  .rank-prog i.on { background: linear-gradient(90deg,#ffe24a,#ff8a2f); box-shadow: 0 0 8px rgba(255,190,60,.7); }
+  .rank-next { font-size: 10px; color: #aeb8cc; white-space: nowrap; font-weight: 800; }
+  .missions { display:flex; flex-direction: column; gap: 5px; text-align: left; margin-top: 2px; }
+  .mis { position: relative; display:flex; align-items:center; gap: 8px; font-size: 12.5px; font-weight: 800; color: #e3e9f5;
+    background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 6px 10px; overflow: hidden; }
+  .mis .mi { font-size: 16px; width: 22px; text-align: center; flex: 0 0 auto; }
+  .mis .mt { flex: 1; min-width: 0; }
+  .mis .mp { font-size: 11px; color: #ffd27a; flex: 0 0 auto; }
+  .mis .mbar { position:absolute; left: 0; bottom: 0; height: 3px; background: linear-gradient(90deg,#ffe24a,#ff8a2f); border-radius: 2px; }
+  .mis.done { background: rgba(60,230,130,.16); border-color: rgba(90,255,150,.4); color: #b8ffd2; }
+  .mis.done .mp { color: #6dff9f; }
+  .mis.fresh { animation: misIn .5s ease-out both; }
+  @keyframes misIn { 0%{ transform: translateX(-30px); opacity: 0;} 100%{ transform: none; opacity: 1;} }
+  .roster { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; padding: 4px 2px 6px; touch-action: pan-x; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .roster::-webkit-scrollbar { display: none; }
+  .roster > * { flex: 0 0 auto; }
+  .roster > :first-child { margin-left: auto; } .roster > :last-child { margin-right: auto; }
+  .char-chip { font-weight: 800; border-radius: 16px; min-height: 38px; font-size: 13px; }
+  .picker-label { font-weight: 900; margin-top: 6px; }
+  .icon-row { display:flex; gap: 9px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+  .ibtn { font: inherit; width: 58px; height: 58px; border-radius: 18px; cursor: pointer; color: #fff; touch-action: manipulation;
+    display:flex; flex-direction: column; align-items:center; justify-content:center; gap: 1px; font-size: 22px; line-height: 1;
+    border: 2px solid rgba(255,255,255,.18); background: rgba(255,255,255,.08); box-shadow: 0 4px 0 rgba(0,0,0,.35); transition: transform .1s; }
+  .ibtn small { font-size: 9.5px; font-weight: 900; letter-spacing: .02em; opacity: .92; }
+  .ibtn:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.35); }
+  .ibtn.c1 { background: linear-gradient(180deg,#2bd88a,#12a56b); } .ibtn.c2 { background: linear-gradient(180deg,#39c8ff,#6a5cff); }
+  .ibtn.c3 { background: linear-gradient(180deg,#ffc24a,#ff7a2f); } .ibtn.c4 { background: linear-gradient(180deg,#b388ff,#7a4cff); }
+  .ibtn.c5 { background: linear-gradient(180deg,#ff8fb8,#ff4d7a); }
+  .ibtn.off { filter: grayscale(.8) brightness(.8); }
+
+  /* ---- game over ---- */
+  #overScreen .panel { max-width: min(460px, 94vw); padding: 20px 20px 18px; }
+  #overScreen h2 { font-size: 30px; font-weight: 900; color: #fff; letter-spacing: .06em; text-shadow: 0 3px 0 #b3203a, 0 0 22px rgba(255,80,80,.6); }
+  .res-row { display:flex; gap: 10px; justify-content: center; margin-top: 8px; }
+  .res { flex: 1; background: rgba(255,255,255,.07); border: 2px solid rgba(255,255,255,.1); border-radius: 18px; padding: 8px 6px; }
+  .res span { display:block; font-size: 11px; color: #aeb8cc; font-weight: 800; letter-spacing: .08em; }
+  .res b { display:block; font-size: clamp(20px, 6.4vw, 30px); font-weight: 900; color: #fff; line-height: 1.2; white-space: nowrap; }
+  .res.st b { color: #ffe36a; text-shadow: 0 2px 0 #b8650a; }
+  #overScreen .big { display: none; }
+  #overMissions { margin-top: 10px; }
+  #overMissions .mh { font-size: 12px; font-weight: 900; color: #ffd27a; letter-spacing: .1em; margin-bottom: 4px; }
+  #rankUp { margin-top: 12px; padding: 10px; border-radius: 16px; background: radial-gradient(ellipse at 50% 20%, rgba(180,120,255,.35), rgba(80,40,160,.12));
+    border: 2px solid rgba(200,160,255,.5); animation: unlockPop .6s ease-out; }
+  #rankUp .ru-t { font-size: 13px; font-weight: 900; color: #e8d8ff; letter-spacing: .1em; }
+  #rankUp .ru-n { font-size: 24px; font-weight: 900; color: #fff; text-shadow: 0 0 16px rgba(200,150,255,.9); }
+  .tap-hint { font-size: 11px; color: #8d97a8; margin-top: 8px; }
+  #pauseScreen .ibtn { width: 64px; }
 </style>
 </head>
 <body>
@@ -231,49 +381,69 @@
 <div id="specialfx"></div>
 <div id="specialFlash"></div>
 
+<div id="shieldfx"></div>
+
 <div id="hud" class="hidden">
-  <div class="hud-box" id="dist">DISTANCE<b>0 m</b><i id="bestPct"></i></div>
+  <div class="hud-left">
+    <div class="hud-box" id="dist">DISTANCE<b id="distVal">0 m</b><i id="bestPct"></i></div>
+    <div class="hud-box star-box" id="starBox"><span class="star-ico">⭐</span><b id="starCount">0</b></div>
+  </div>
   <button id="pauseBtn" aria-label="一時停止">⏸</button>
-  <div class="hud-box" style="text-align:right">
-    <div id="lives">❤️❤️❤️</div>
-    <div id="speed">SPEED 1.0x</div>
-    <div id="specialTimer"><div class="st-txt">⚡ 無敵 10.0s</div><div class="st-bar"><i></i></div></div>
+  <div class="hud-right">
+    <div class="hud-box" style="text-align:right">
+      <div id="lives">❤️❤️❤️</div>
+      <div id="speed">SPEED 1.0x</div>
+      <div id="specialTimer"><div class="st-txt">⚡ 無敵 10.0s</div><div class="st-bar"><i></i></div></div>
+    </div>
+    <div id="powerRow"></div>
   </div>
 </div>
+<div id="stageBar" class="hidden"><span id="sbFrom">🌋</span><span class="sbt"><i id="sbFill"></i></span><span id="sbTo">🌿</span></div>
 <div id="combo"></div>
 <div id="toast"></div>
+<div id="stageBanner"><div class="sgb-e" id="sgbE">🌋</div><div class="sgb-n" id="sgbN">STAGE 1</div><div class="sgb-t" id="sgbT">マグマだまり</div></div>
+<div id="missionPop"></div>
+<div id="missionCard"><div class="mc-h">🎯 こんかいの ミッション</div><div class="missions" id="missionCardList"></div></div>
 <button id="specialBtn" aria-label="必殺技"><span class="sb-icon">⚡</span><span class="sb-label">必殺技</span></button>
 
 <div id="loadingScreen" class="overlay">
   <div class="panel" style="background:transparent;border:none;box-shadow:none">
-    <div class="spinner"></div>
-    <h2 style="color:#ffb070;margin-top:20px">🐉 LOADING…</h2>
+    <div class="ld-dragon">🐉</div>
+    <h2 style="color:#ffd27a;margin-top:10px;font-weight:900">DRAGON DASH</h2>
     <p id="loadingPct" style="color:#cfd6e2">ドラゴンと仲間たちを読み込み中… 0%</p>
     <div class="bar"><i id="loadingBar"></i></div>
   </div>
 </div>
 
 <div id="startScreen" class="overlay menu hidden">
+  <div class="menu-top">
+    <div class="logo">
+      <div class="lg-row"><span class="lg-d">🐉</span><span class="lg-t">DRAGON</span></div>
+      <span class="lg-t t2">DASH!</span>
+    </div>
+    <div class="menu-stats">
+      <span class="stat-pill" id="menuBest">🏆 自己ベスト 0 m</span>
+      <span class="stat-pill gold" id="menuStars">⭐ 0</span>
+    </div>
+  </div>
   <div class="panel">
-    <h1>🐉 DRAGON DASH</h1>
-    <p class="lead">敵に3回ぶつかるとゲームオーバー ・ 💚で回復</p>
+    <div class="rank-row"><span class="rank-badge" id="rankBadge">🥚 たまごドラゴン</span><span class="rank-prog" id="rankProg"><i></i><i></i><i></i></span><span class="rank-next" id="rankNext">あと3</span></div>
+    <div class="missions" id="menuMissions"></div>
     <p class="picker-label">▼ キャラクターを選ぶ</p>
     <div class="roster" id="roster"></div>
     <div id="modePicker" class="hidden">
-      <p class="picker-label">▼ モード</p>
       <div class="roster">
         <button class="char-chip mode-chip sel" id="modeNormal">🐉 ノーマル</button>
         <button class="char-chip mode-chip vhard" id="modeVhard">💀 VERY HARD</button>
       </div>
     </div>
-    <p id="menuBest" class="best">🏆 自己ベスト 0 m</p>
-    <button class="btn" id="startBtn">▶ スタート</button>
-    <p class="hint">スワイプで移動・指を離すと停止 / モデルはドラッグで回転</p>
-    <div class="actions">
-      <button class="btn btn-sec" id="helpBtn">📖 あそびかた</button>
-      <button class="btn btn-sec btn-photo" id="photoBtn">📸 フォト</button>
-      <button class="btn btn-sec" id="shareBtn">📤 共有</button>
-      <button class="btn btn-sec btn-card" id="cardBtn">🎴 カード</button>
+    <button class="btn btn-go" id="startBtn">▶ スタート！</button>
+    <div class="icon-row">
+      <button class="ibtn c1" id="helpBtn">📖<small>あそびかた</small></button>
+      <button class="ibtn c2" id="photoBtn">📸<small>フォト</small></button>
+      <button class="ibtn c3" id="cardBtn">🎴<small>カード</small></button>
+      <button class="ibtn c1" id="shareBtn">📤<small>きょうゆう</small></button>
+      <button class="ibtn c4" id="soundBtn">🔊<small>おと</small></button>
     </div>
     <button class="btn btn-install hidden" id="installBtn">📲 インストール</button>
   </div>
@@ -294,18 +464,24 @@
 <div id="overScreen" class="overlay hidden">
   <div class="panel">
     <h2>GAME OVER</h2>
-    <p>とうたつ距離</p>
-    <div class="big" id="finalDist">0 m</div>
-    <p id="newRecord" class="hidden" style="color:#46ff8c;font-weight:800;font-size:15px">🎉 自己ベスト更新！</p>
-    <p id="bestDist" style="color:#ffd27a">🏆 自己ベスト 0 m</p>
+    <div class="res-row">
+      <div class="res"><span>とうたつ距離</span><b id="finalDist">0 m</b></div>
+      <div class="res st"><span>⭐ スター</span><b id="finalStars">0</b></div>
+    </div>
+    <div class="big" id="finalDistBig"></div>
+    <p id="newRecord" class="hidden" style="color:#46ff8c;font-weight:900;font-size:17px">🎉 自己ベスト更新！</p>
+    <p id="bestDist" style="color:#ffd27a;font-weight:800">🏆 自己ベスト 0 m</p>
+    <div id="overMissions"><div class="mh">🎯 ミッション</div><div class="missions" id="overMissionList"></div></div>
+    <div id="rankUp" class="hidden"><div class="ru-t">⬆ ランクアップ！</div><div class="ru-n" id="rankUpName"></div></div>
     <div id="unlockReveal" class="hidden">
       <p class="ur-title">🎉 あたらしい仲間が解放された！</p>
       <div class="unlock-chars" id="unlockChars"></div>
     </div>
-    <button class="btn" id="retryBtn">↻ もう一度</button>
-    <div class="actions">
-      <button class="btn btn-sec" id="shareBtn2">📤 アプリを共有</button>
-      <button class="btn btn-sec btn-score" id="scoreImgBtn">🖼️ スコア画像をダウンロード</button>
+    <button class="btn btn-go" id="retryBtn">↻ もう一度！</button>
+    <div class="icon-row">
+      <button class="ibtn c2" id="homeBtn">🏠<small>メニュー</small></button>
+      <button class="ibtn c1" id="shareBtn2">📤<small>きょうゆう</small></button>
+      <button class="ibtn c3" id="scoreImgBtn">🖼️<small>スコア画像</small></button>
     </div>
   </div>
 </div>
@@ -314,9 +490,10 @@
   <div class="panel">
     <h2>⏸ 一時停止</h2>
     <p>ひと休み中…</p>
-    <button class="btn" id="resumeBtn">▶ 続ける</button>
-    <div class="actions">
-      <button class="btn btn-sec" id="toMenuBtn">🏠 メニューに戻る</button>
+    <button class="btn btn-go" id="resumeBtn">▶ 続ける</button>
+    <div class="icon-row">
+      <button class="ibtn c2" id="toMenuBtn">🏠<small>メニュー</small></button>
+      <button class="ibtn c4" id="pauseSoundBtn">🔊<small>おと</small></button>
     </div>
   </div>
 </div>
@@ -325,12 +502,16 @@
   <div class="panel">
     <h2>📖 あそびかた</h2>
     <div class="help-list">
-      <div class="help-row"><span class="hi">🕹️</span><span class="ht"><b>そうさ：</b>画面をスワイプしてドラゴンを上下左右に移動。指を離すと止まります。PCでは矢印キー／WASDでも動かせます。メニューのモデルはドラッグで回転できます。</span></div>
+      <div class="help-row"><span class="hi">🕹️</span><span class="ht"><b>そうさ：</b>画面をスワイプしてドラゴンを上下左右に移動。指を離すと止まります。PCでは矢印キー／WASDでも動かせます。</span></div>
       <div class="help-row"><span class="hi">💥</span><span class="ht"><b>ルール：</b>敵に3回ぶつかるとゲームオーバー。<b>💚</b>を取ると体力が1つ回復します。</span></div>
-      <div class="help-row"><span class="hi">✨</span><span class="ht"><b>かくしキャラ：</b>プレイ中にまれに<b>かがやくアイテム</b>が出現！取るとランダムでキャラクターが1体解放されます。解放はずっと記憶されます。</span></div>
-      <div class="help-row"><span class="hi">⚡</span><span class="ht"><b>必殺技：</b>まれに出る<b>⚡必殺技アイテム</b>を取ると画面下に<b>必殺技ボタン</b>が出現。押すと派手な演出のあと<b>10秒間 無敵</b>に！無敵中に敵へぶつかると敵が<b>粉々</b>に砕けます（PCは <kbd>F</kbd>）。</span></div>
-      <div class="help-row"><span class="hi">🏆</span><span class="ht"><b>スコア：</b>進んだ距離がスコアです。自己ベストの更新を目指そう！</span></div>
-      <div class="help-row"><span class="hi">⏸</span><span class="ht"><b>一時停止：</b>プレイ中に右上のボタン（PCは <kbd>P</kbd> または <kbd>Esc</kbd>）。</span></div>
+      <div class="help-row"><span class="hi">⭐</span><span class="ht"><b>スター：</b>ならんだ<b>スター</b>をどんどん集めよう！つづけて取ると音がどんどん高くなるよ。</span></div>
+      <div class="help-row"><span class="hi">💫</span><span class="ht"><b>にじのリング：</b>リングのまん中をくぐるとスターのボーナス！ぜんぶくぐると<b>PERFECT！</b></span></div>
+      <div class="help-row"><span class="hi">😎</span><span class="ht"><b>ギリギリよけ：</b>敵のすぐそばをすりぬけるとボーナス！</span></div>
+      <div class="help-row"><span class="hi">🎁</span><span class="ht"><b>アイテム：</b><b>🧲マグネット</b>でスターを吸いよせ、<b>🛡️シールド</b>は敵を1回ふせぐ、<b>✖️2</b>はスター2倍！</span></div>
+      <div class="help-row"><span class="hi">⚡</span><span class="ht"><b>必殺技：</b>画面下の<b>必殺技ボタン</b>を押すと<b>10秒間 無敵</b>！敵にぶつかると<b>粉々</b>に（PCは <kbd>F</kbd>）。1ゲーム3回まで。</span></div>
+      <div class="help-row"><span class="hi">🎯</span><span class="ht"><b>ミッション：</b>3つのミッションをクリアすると<b>ランクアップ</b>！ランクが上がると新しい仲間がもらえることも。</span></div>
+      <div class="help-row"><span class="hi">✨</span><span class="ht"><b>かくしキャラ：</b>プレイ中に出る<b>かがやくアイテム</b>を取ると、キャラクターが1体解放されます。</span></div>
+      <div class="help-row"><span class="hi">⏸</span><span class="ht"><b>一時停止：</b>プレイ中に上のボタン（PCは <kbd>P</kbd> または <kbd>Esc</kbd>）。</span></div>
     </div>
     <button class="btn" id="helpCloseBtn">▶ とじる</button>
   </div>
@@ -631,17 +812,20 @@ const STAGES = [
     floor:null, sky:0, env:0.34,
     clear:[0.05,0.018,0.01], fog:[0.16,0.05,0.03], fogStart:95, fogEnd:330,
     streak:[1.0,0.55,0.25], gate:[1.0,0.45,0.10], glow:[1.0,0.55,0.25],
-    hemi:[0.40,0.24,0.19], hemiInt:0.5, dir:[1.0,0.58,0.34], dirInt:1.1 },
+    hemi:[0.40,0.24,0.19], hemiInt:0.5, dir:[1.0,0.58,0.34], dirInt:1.1,
+    bloom:[0.85, 0.32], trail:[1.0,0.55,0.15], music:'magma' },
   { name:'岩の草原', sub:'ROCKY PLAINS', emoji:'🌿', toast:'#69e36b',
     floor:null, sky:1, env:1.15,
     clear:[0.55,0.70,0.85], fog:[0.70,0.82,0.92], fogStart:120, fogEnd:330,
     streak:[0.85,1.0,0.85], gate:[0.40,1.0,0.50], glow:[0.60,1.0,0.60],
-    hemi:[0.60,0.66,0.60], hemiInt:1.0, dir:[1.0,0.97,0.85], dirInt:2.2 },
+    hemi:[0.60,0.66,0.60], hemiInt:1.0, dir:[1.0,0.97,0.85], dirInt:2.2,
+    bloom:[1.25, 0.18], trail:[0.35,0.85,1.0], music:'grass' },
   { name:'宇宙空間', sub:'DEEP SPACE', emoji:'🌌', toast:'#9b8cff',
     floor:null, sky:2, env:0.40,
     clear:[0.0,0.0,0.02], fog:[0.01,0.01,0.04], fogStart:280, fogEnd:900,
     streak:[0.90,0.95,1.0], gate:[0.60,0.40,1.0], glow:[0.50,0.50,1.0],
-    hemi:[0.20,0.22,0.40], hemiInt:0.35, dir:[0.60,0.65,1.0], dirInt:0.5 },
+    hemi:[0.20,0.22,0.40], hemiInt:0.35, dir:[0.60,0.65,1.0], dirInt:0.5,
+    bloom:[0.6, 0.42], trail:[0.75,0.45,1.0], music:'space' },
 ];
 function stageForDistance(d) { let s = 0; for (let i = 0; i < STAGE_STARTS.length; i++) if (d >= STAGE_STARTS[i]) s = i; return Math.min(STAGES.length - 1, s); }
 
@@ -688,6 +872,272 @@ let anchorX = 0, anchorY = 0;    // where the current swipe began (screen px)
 let dragVX = 0, dragVY = 0;      // swipe-joystick steering velocity (lane units/s)
 const $ = id => document.getElementById(id);
 
+// ---- refresh: collectibles / power-ups / missions (per-run state) ----
+const LOW_FX = IS_IOS;               // leaner scenery + particles on iOS's tight GPU budget
+const NUM_STARS = 72, NUM_RINGS = 6;
+const MAGNET_TIME = 9, X2_TIME = 10;
+let starPool = [], starSrc = null, ringPool = [], ringSrc = null;
+let runStars = 0, starChain = 0, lastStarT = 0, nextStarAt = 60, nextRingAt = 260, nextPowerAt = 520;
+let magnetT = 0, x2T = 0, shieldOn = false, shieldMesh = null, magnetRing = null;
+let powerItems = {};                 // key → bubble mesh (mag / shd / x2)
+let ringSeq = null;                  // { total, passed, missed } for the current ring run
+let runStats = null;                 // counters the missions read
+let trails = [];                     // wing-tip sparkle trails behind the player
+let ambientFx = null;                // per-stage floating embers / pollen / stardust
+let sceneryStage = [[], [], []];     // recycled decoration instances per stage
+let glowLayer = null;
+let overShownAt = 0;                 // guards the tap-to-retry right after a crash
+let lastHudKey = '';
+
+// ======================================================================
+//  SOUND — everything is synthesized with WebAudio (no audio files), so it
+//  works offline and adds nothing to the download. BGM is a tiny step
+//  sequencer with a cheerful loop per stage.
+// ======================================================================
+const Sound = (() => {
+  let ctx = null, master = null, sfxBus = null, bgmBus = null, noiseBuf = null;
+  let muted = false;
+  try { muted = localStorage.getItem('dd_mute') === '1'; } catch (_) {}
+  let song = null, songKey = '', step = 0, nextT = 0, timer = null;
+
+  function ensure() {
+    if (!ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      try { ctx = new AC(); } catch (_) { return null; }
+      master = ctx.createGain(); master.gain.value = muted ? 0 : 0.9; master.connect(ctx.destination);
+      const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4; comp.connect(master);
+      sfxBus = ctx.createGain(); sfxBus.gain.value = 0.55; sfxBus.connect(comp);
+      bgmBus = ctx.createGain(); bgmBus.gain.value = 0.22; bgmBus.connect(comp);
+      noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 0.6, ctx.sampleRate);
+      const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    return ctx;
+  }
+  const hz = n => 440 * Math.pow(2, (n - 69) / 12);     // MIDI note → Hz
+
+  function tone(o) {
+    if (!ctx || muted) return;
+    const t = ctx.currentTime + (o.t || 0), d = o.d || 0.15;
+    const osc = ctx.createOscillator(), g = ctx.createGain();
+    osc.type = o.type || 'sine';
+    osc.frequency.setValueAtTime(o.f, t);
+    if (o.f2) osc.frequency.exponentialRampToValueAtTime(o.f2, t + d);
+    const v = o.v == null ? 0.25 : o.v;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(v, t + (o.a || 0.006));
+    g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    osc.connect(g); g.connect(o.bus || sfxBus);
+    osc.start(t); osc.stop(t + d + 0.03);
+  }
+  function noise(o) {
+    if (!ctx || muted) return;
+    const t = ctx.currentTime + (o.t || 0), d = o.d || 0.2;
+    const src = ctx.createBufferSource(); src.buffer = noiseBuf;
+    const f = ctx.createBiquadFilter(); f.type = o.ft || 'bandpass'; f.Q.value = o.q || 1;
+    f.frequency.setValueAtTime(o.f || 1200, t);
+    if (o.f2) f.frequency.exponentialRampToValueAtTime(o.f2, t + d);
+    const g = ctx.createGain(); const v = o.v == null ? 0.3 : o.v;
+    g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    src.connect(f); f.connect(g); g.connect(o.bus || sfxBus);
+    src.start(t); src.stop(t + d + 0.02);
+  }
+  const PENTA = [0, 2, 4, 7, 9];
+  const sfx = {
+    star(chain) {   // climbing pentatonic "pling" — the longer the chain, the higher it goes
+      const k = Math.min(chain, 24), n = 76 + 12 * Math.floor(k / 5) + PENTA[k % 5];
+      tone({ f: hz(n), d: 0.16, type: 'triangle', v: 0.22 });
+      tone({ f: hz(n + 12), d: 0.1, type: 'sine', v: 0.1, t: 0.02 });
+    },
+    ring(i) { [0, 4, 7, 12].forEach((s, j) => tone({ f: hz(72 + (i || 0) * 2 + s), d: 0.18, type: 'square', v: 0.07, t: j * 0.045 })); },
+    perfect() { [0, 4, 7, 12, 16, 19, 24].forEach((s, j) => tone({ f: hz(72 + s), d: 0.22, type: 'square', v: 0.07, t: j * 0.06 })); },
+    near() { noise({ f: 700, f2: 3200, d: 0.22, q: 2.5, v: 0.22 }); tone({ f: hz(86), d: 0.12, type: 'sine', v: 0.1, t: 0.05 }); },
+    hit() { noise({ ft: 'lowpass', f: 2400, f2: 120, d: 0.45, v: 0.55 }); tone({ f: 220, f2: 50, d: 0.4, type: 'sawtooth', v: 0.25 }); },
+    shieldBreak() { noise({ ft: 'highpass', f: 3000, d: 0.35, v: 0.3 }); [88, 84, 79].forEach((n, j) => tone({ f: hz(n), d: 0.15, type: 'triangle', v: 0.12, t: j * 0.05 })); },
+    heal() { [0, 4, 7, 12].forEach((s, j) => tone({ f: hz(67 + s), d: 0.25, type: 'triangle', v: 0.18, t: j * 0.07 })); },
+    power() { tone({ f: 300, f2: 1400, d: 0.35, type: 'square', v: 0.08 }); [0, 7, 12].forEach((s, j) => tone({ f: hz(79 + s), d: 0.2, type: 'triangle', v: 0.14, t: 0.12 + j * 0.06 })); },
+    unlock() { [0, 4, 7, 11, 12, 16, 19, 24].forEach((s, j) => tone({ f: hz(72 + s), d: 0.3, type: 'triangle', v: 0.16, t: j * 0.07 })); },
+    special() { tone({ f: 80, f2: 900, d: 1.2, type: 'sawtooth', v: 0.12 }); noise({ f: 400, f2: 5000, d: 1.3, q: 0.8, v: 0.18 }); },
+    boom() { noise({ ft: 'lowpass', f: 3000, f2: 80, d: 0.7, v: 0.5 }); tone({ f: 120, f2: 35, d: 0.6, type: 'sine', v: 0.5 }); [0, 4, 7, 12].forEach((s, j) => tone({ f: hz(84 + s), d: 0.3, type: 'triangle', v: 0.1, t: 0.1 + j * 0.05 })); },
+    smash() { noise({ ft: 'bandpass', f: 1800, f2: 400, d: 0.25, q: 0.7, v: 0.35 }); tone({ f: hz(84 + Math.floor(Math.random() * 5) * 2), d: 0.12, type: 'square', v: 0.06 }); },
+    stage() { [[0, 0], [4, 0.12], [7, 0.24], [12, 0.36], [7, 0.52], [12, 0.62]].forEach(([s, t]) => { tone({ f: hz(72 + s), d: 0.28, type: 'square', v: 0.08, t }); tone({ f: hz(60 + s), d: 0.28, type: 'triangle', v: 0.12, t }); }); },
+    mission() { [[0, 0], [7, 0.1], [12, 0.2], [16, 0.3], [19, 0.4]].forEach(([s, t]) => tone({ f: hz(76 + s), d: 0.25, type: 'triangle', v: 0.16, t })); },
+    best() { [[0, 0], [0, 0.12], [0, 0.24], [5, 0.4], [9, 0.56], [12, 0.72]].forEach(([s, t]) => tone({ f: hz(72 + s), d: 0.25, type: 'square', v: 0.08, t })); },
+    over() { [7, 4, 0, -5].forEach((s, j) => tone({ f: hz(67 + s), d: 0.32, type: 'triangle', v: 0.18, t: j * 0.16 })); },
+    click() { tone({ f: 900, f2: 1300, d: 0.06, type: 'square', v: 0.05 }); },
+  };
+
+  // ---- BGM: 16 steps per bar, 4 bars. chords = [root, third, fifth] MIDI ----
+  const SONGS = {
+    menu:  { bpm: 104, wave: 'triangle', chords: [[60,64,67],[57,60,64],[53,57,60],[55,59,62]], drums: false,
+             mel: [72,-1,76,-1,79,-1,76,-1, 74,-1,72,-1,69,-1,-1,-1] },
+    magma: { bpm: 142, wave: 'square', chords: [[57,60,64],[53,57,60],[60,64,67],[55,59,62]], drums: true,
+             mel: [69,-1,72,69,76,-1,74,72, 71,-1,72,-1,74,-1,76,-1] },
+    grass: { bpm: 136, wave: 'square', chords: [[60,64,67],[55,59,62],[57,60,64],[53,57,60]], drums: true,
+             mel: [72,74,76,-1,79,-1,76,-1, 77,-1,76,74,72,-1,74,-1] },
+    space: { bpm: 128, wave: 'triangle', chords: [[62,65,69],[58,62,65],[53,57,60],[60,64,67]], drums: true,
+             mel: [74,-1,-1,77,-1,-1,81,-1, 79,-1,77,-1,76,-1,72,-1] },
+  };
+  function playStep(s, t) {
+    const sp = 60 / song.bpm / 4, bar = Math.floor(s / 16) % 4, st = s % 16, ch = song.chords[bar];
+    const B = bgmBus;
+    // bass: driving eighths on the root
+    if (st % 2 === 0) tone({ f: hz(ch[0] - 24 + (st === 6 || st === 14 ? 12 : 0)), d: sp * 1.6, type: 'triangle', v: 0.5, bus: B, t: t - ctx.currentTime });
+    // arpeggio sparkle on 16ths
+    const arp = ch[[0, 1, 2, 1][st % 4]] + 12;
+    tone({ f: hz(arp), d: sp * 0.9, type: song.wave, v: song.wave === 'square' ? 0.05 : 0.1, bus: B, t: t - ctx.currentTime });
+    // melody (varies per bar a little so it doesn't drone)
+    let m = song.mel[st]; if (m > 0) { if (bar === 1) m -= 2; if (bar === 3 && st >= 8) m += 2;
+      tone({ f: hz(m), d: sp * 1.8, type: 'triangle', v: 0.2, bus: B, t: t - ctx.currentTime }); }
+    if (song.drums) {
+      if (st % 4 === 0) tone({ f: 150, f2: 45, d: 0.16, type: 'sine', v: 0.7, bus: B, t: t - ctx.currentTime });          // kick
+      if (st % 8 === 4) noise({ ft: 'bandpass', f: 1800, q: 0.8, d: 0.14, v: 0.35, bus: B, t: t - ctx.currentTime });   // snare
+      if (st % 2 === 1) noise({ ft: 'highpass', f: 7000, d: 0.04, v: 0.12, bus: B, t: t - ctx.currentTime });           // hat
+    }
+  }
+  function tick() {
+    if (!ctx || !song || muted) return;
+    const sp = 60 / song.bpm / 4;
+    if (nextT < ctx.currentTime) nextT = ctx.currentTime + 0.05;
+    while (nextT < ctx.currentTime + 0.14) { playStep(step, nextT); step++; nextT += sp; }
+  }
+  function music(key) {
+    if (key === songKey) return;
+    songKey = key; song = key ? SONGS[key] : null; step = 0;
+    if (ctx) nextT = ctx.currentTime + 0.08;
+    if (song && !timer) timer = setInterval(tick, 30);
+    if (!song && timer) { clearInterval(timer); timer = null; }
+  }
+  function setMuted(m) {
+    muted = !!m;
+    try { localStorage.setItem('dd_mute', muted ? '1' : '0'); } catch (_) {}
+    if (master && ctx) master.gain.setTargetAtTime(muted ? 0 : 0.9, ctx.currentTime, 0.05);
+  }
+  function suspend() { if (ctx && ctx.state === 'running') ctx.suspend().catch(() => {}); }
+  function resume() { if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {}); }
+  return {
+    unlock: ensure, music, suspend, resume,
+    play(name, a) { if (!ctx || muted) return; try { sfx[name] && sfx[name](a); } catch (_) {} },
+    toggle() { ensure(); setMuted(!muted); return muted; },
+    get muted() { return muted; }
+  };
+})();
+function vibrate(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (_) {} }
+
+// ======================================================================
+//  SAVE DATA — total stars, missions + rank. (best score / characters stay
+//  in their original cookies so existing players keep their records.)
+// ======================================================================
+const PROGRESS_KEY = 'dd_progress_v1';
+const RANKS = [
+  { e:'🥚', n:'たまごドラゴン' }, { e:'🐣', n:'ちびドラゴン' }, { e:'🦎', n:'こどもドラゴン' },
+  { e:'🐲', n:'わかものドラゴン' }, { e:'🛡️', n:'ドラゴンナイト' }, { e:'🔥', n:'ほのおのドラゴン' },
+  { e:'🌈', n:'にじいろドラゴン' }, { e:'🌟', n:'ドラゴンマスター' }, { e:'👑', n:'ドラゴンキング' },
+  { e:'🌌', n:'でんせつのドラゴン' },
+];
+const MISSIONS_PER_RANK = 3;
+const MISSION_TYPES = {
+  dist:  { icon:'🛫', txt:n => n + 'm とぶ',                     base:500, step:220, round:50 },
+  stars: { icon:'⭐', txt:n => 'スターを ' + n + 'こ あつめる',   base:30,  step:14,  round:5 },
+  chain: { icon:'🔗', txt:n => 'スターを ' + n + 'こ れんぞくで とる', base:10, step:4, round:1 },
+  rings: { icon:'💫', txt:n => 'リングを ' + n + 'こ くぐる',     base:3,   step:2,   round:1 },
+  near:  { icon:'😎', txt:n => 'ギリギリよけ ' + n + 'かい',       base:3,   step:2,   round:1 },
+  power: { icon:'🎁', txt:n => 'アイテムを ' + n + 'こ とる',     base:2,   step:1,   round:1 },
+  smash: { icon:'💥', txt:n => 'ひっさつわざで ' + n + 'たい たおす', base:3, step:2,  round:1 },
+  heal:  { icon:'💚', txt:n => 'ハートを ' + n + 'こ とる',        base:1,   step:0.5, round:1 },
+};
+function loadProgress() {
+  let p = null;
+  try { p = JSON.parse(localStorage.getItem(PROGRESS_KEY) || 'null'); } catch (_) {}
+  if (!p || typeof p !== 'object') p = {};
+  p.stars = p.stars | 0; p.cleared = p.cleared | 0;
+  if (!Array.isArray(p.missions)) p.missions = [];
+  p.missions = p.missions.filter(m => m && MISSION_TYPES[m.t] && m.n > 0);
+  while (p.missions.length < 3) p.missions.push(newMission(p));
+  return p;
+}
+let progress = null;
+function saveProgress() { try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress)); } catch (_) {} }
+function newMission(p) {
+  const have = (p.missions || []).map(m => m.t);
+  const types = Object.keys(MISSION_TYPES).filter(t => have.indexOf(t) < 0);
+  const t = types[Math.floor(Math.random() * types.length)];
+  const d = MISSION_TYPES[t], lvl = (p.cleared | 0) + Math.floor(Math.random() * 2);
+  const n = Math.max(1, Math.round((d.base + d.step * lvl) / d.round) * d.round);
+  return { t, n, done: false };
+}
+function rankIndex() { return Math.min(RANKS.length - 1, Math.floor(progress.cleared / MISSIONS_PER_RANK)); }
+function missionValue(t) {
+  if (!runStats) return 0;
+  return t === 'dist' ? Math.floor(runStats.dist) : (runStats[t] | 0);
+}
+function missionRowHTML(m, live, fresh) {
+  const d = MISSION_TYPES[m.t];
+  const v = m.done ? m.n : Math.min(m.n, live ? missionValue(m.t) : 0);
+  const pct = Math.round(v / m.n * 100);
+  return '<div class="mis' + (m.done ? ' done' : '') + (fresh ? ' fresh' : '') + '"><span class="mi">' + (m.done ? '✅' : d.icon) + '</span>' +
+    '<span class="mt">' + d.txt(m.n) + '</span><span class="mp">' + (m.done ? 'クリア！' : (live ? v + '/' + m.n : '')) + '</span>' +
+    (live && !m.done ? '<i class="mbar" style="width:' + pct + '%"></i>' : '') + '</div>';
+}
+function renderMenuProgress() {
+  if (!progress) return;
+  const r = rankIndex(), R = RANKS[r];
+  $('rankBadge').textContent = R.e + ' ' + R.n;
+  const into = progress.cleared % MISSIONS_PER_RANK;
+  const maxed = r >= RANKS.length - 1;
+  $('rankProg').innerHTML = [0, 1, 2].map(i => '<i class="' + (maxed || i < into ? 'on' : '') + '"></i>').join('');
+  $('rankNext').textContent = maxed ? 'MAX!' : 'あと' + (MISSIONS_PER_RANK - into);
+  $('menuMissions').innerHTML = progress.missions.map(m => missionRowHTML(m, false, !!m.fresh)).join('');
+  progress.missions.forEach(m => { delete m.fresh; });
+  $('menuStars').textContent = '⭐ ' + progress.stars.toLocaleString();
+}
+// Called every frame during a run (cheap): flags missions the moment they're met.
+function checkMissions() {
+  if (!progress || !runStats) return;
+  for (const m of progress.missions) {
+    if (m.done) continue;
+    if (missionValue(m.t) >= m.n) {
+      m.done = true; m.justDone = true;
+      progress.cleared++;
+      progress.stars += 20;
+      saveProgress();
+      showMissionPop(m);
+      Sound.play('mission');
+      if (progress.cleared % MISSIONS_PER_RANK === 0 && Math.floor(progress.cleared / MISSIONS_PER_RANK) < RANKS.length) runStats.rankUp = true;
+    }
+  }
+}
+let missionPopT = null;
+function showMissionPop(m) {
+  const el = $('missionPop');
+  el.innerHTML = '<small>🎖️ ミッションクリア！ ⭐+20</small>' + MISSION_TYPES[m.t].icon + ' ' + MISSION_TYPES[m.t].txt(m.n);
+  el.classList.add('show');
+  clearTimeout(missionPopT); missionPopT = setTimeout(() => el.classList.remove('show'), 2400);
+  launchConfetti(26);
+}
+function showMissionCard() {
+  const el = $('missionCard');
+  $('missionCardList').innerHTML = progress.missions.map(m => missionRowHTML(m, false)).join('');
+  el.classList.add('show');
+  clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 3200);
+}
+// End of a run: bank stars, render the results list, roll in fresh missions
+// for the cleared ones, and hand out the rank-up reward.
+function finishRunProgress() {
+  if (!progress || !runStats) return { rankUp: false };
+  progress.stars += runStars;
+  const rows = progress.missions.map(m => missionRowHTML(m, true)).join('');
+  const rankUp = !!runStats.rankUp;
+  for (let i = 0; i < progress.missions.length; i++) {
+    if (!progress.missions[i].done) continue;
+    const nm = newMission(progress); nm.fresh = true; progress.missions[i] = nm;
+  }
+  saveProgress();
+  runStats = null;
+  return { rows, rankUp };
+}
+
 // ---------- scene ----------
 function createScene() {
   scene = new BABYLON.Scene(engine);
@@ -729,7 +1179,10 @@ function createScene() {
   loadCharacters();
 
   bootStep = 'GlowLayer';
-  const gl = new BABYLON.GlowLayer("glow", scene); gl.intensity = 0.35;   // subtle bloom on lava cracks / fire — kept low so it doesn't wash the magma stage white
+  // Glow only what we opt in (stars, rings, items, trails, gems…) — the models and
+  // the lava floor are emissive too and would otherwise bloom into a white wash.
+  glowLayer = new BABYLON.GlowLayer("glow", scene, { mainTextureRatio: LOW_FX ? 0.25 : 0.5, blurKernelSize: LOW_FX ? 24 : 48 });
+  glowLayer.intensity = 0.85;
 
   bootStep = 'setupPipeline';
   setupPipeline();
@@ -755,6 +1208,11 @@ function createScene() {
   buildSpecialItem(); buildSpecialFX();
   bootStep = 'buildObstacles';
   buildObstacles(false);   // boxes until models ready
+  bootStep = 'buildCollectibles';
+  buildStars(); buildRings(); buildPowerItems(); buildPlayerFX();
+  bootStep = 'buildScenery';
+  buildScenery(); buildAmbient();
+  applySceneryStage(0);
   bootStep = 'done';
   return scene;
 }
@@ -763,16 +1221,23 @@ function setupPipeline() {
   pipeline = new BABYLON.DefaultRenderingPipeline("rp", true, scene, [camera, showcaseCam]);
   pipeline.fxaaEnabled = true;
   pipeline.bloomEnabled = true;
-  pipeline.bloomThreshold = 1.0; pipeline.bloomWeight = 0.13; pipeline.bloomKernel = 40; pipeline.bloomScale = 0.5;
+  pipeline.bloomThreshold = 0.85; pipeline.bloomWeight = 0.28; pipeline.bloomKernel = LOW_FX ? 32 : 64; pipeline.bloomScale = 0.5;
   pipeline.chromaticAberrationEnabled = true;
   pipeline.chromaticAberration.aberrationAmount = 0.3;
   pipeline.grainEnabled = false;
+  if (!LOW_FX) { pipeline.sharpenEnabled = true; pipeline.sharpen.edgeAmount = 0.18; pipeline.sharpen.colorAmount = 1.0; }
   pipeline.imageProcessingEnabled = true;
   const ip = pipeline.imageProcessing;
   ip.toneMappingEnabled = true; ip.toneMappingType = BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
-  ip.exposure = 1.0; ip.contrast = 1.2;
-  ip.vignetteEnabled = true; ip.vignetteWeight = 0.6; ip.vignetteStretch = 0.3;
-  ip.vignetteColor = new BABYLON.Color4(0.05, 0.07, 0.16, 1);
+  ip.exposure = 1.08; ip.contrast = 1.14;
+  // punchy, saturated "toy" colour grade — kids' games live on vivid colour
+  ip.colorCurvesEnabled = true;
+  const cc = new BABYLON.ColorCurves();
+  cc.globalSaturation = 22; cc.highlightsHue = 40; cc.highlightsDensity = 12; cc.highlightsSaturation = 20;
+  cc.shadowsHue = 230; cc.shadowsDensity = 18; cc.shadowsSaturation = 30;
+  ip.colorCurves = cc;
+  ip.vignetteEnabled = true; ip.vignetteWeight = 0.8; ip.vignetteStretch = 0.4;
+  ip.vignetteColor = new BABYLON.Color4(0.05, 0.03, 0.14, 1);
 }
 
 let tunnelTiles = [];
@@ -847,6 +1312,7 @@ function buildStageMaterials() {
   // emissiveColor lit the whole floor to near-white and washed the screen out.
   // Keep it a dim, dark-warm glow so the floor reads as molten rock, not a lamp.
   lava.emissiveColor = new BABYLON.Color3(0.32, 0.16, 0.08); lava.emissiveIntensity = 0.45;
+  lava.albedoColor = new BABYLON.Color3(0.62, 0.5, 0.46);   // a touch darker so glowing lava + props pop against it
   lava.environmentIntensity = 0.5;
 
   // ── 2nd: 岩の草原 — Poly Haven "aerial_grass_rock" PBR (grass + embedded rock) ──
@@ -874,7 +1340,22 @@ function applyStage(i, announce) {
   const sky = stageSkies[st.sky];
   if (sky) { skyMat.reflectionTexture = sky; scene.environmentTexture = sky; }
   stageTgt = st;
-  if (announce) { flashToast(st.emoji + ' ' + st.name, st.toast); flashCombo('STAGE ' + (i+1) + ' — ' + st.sub); }
+  applySceneryStage(i);
+  if (phase === 'playing' || phase === 'paused') Sound.music(st.music);
+  if (announce) {
+    showStageBanner(i);
+    Sound.play('stage');
+    // stage-clear reward: a shower of bonus stars + a celebratory confetti burst
+    if (i > 0 && !veryHard) { addStars(10, null, '🎉 ステージクリア ⭐+10'); launchConfetti(40); }
+  }
+}
+function showStageBanner(i) {
+  const st = STAGES[i], el = $('stageBanner');
+  $('sgbE').textContent = st.emoji;
+  $('sgbN').textContent = veryHard ? 'VERY HARD' : 'STAGE ' + (i + 1);
+  $('sgbT').textContent = st.name;
+  el.style.setProperty('--sgc', st.toast);
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
 }
 
 function lerpRGB(col, arr, k) { col.r += (arr[0]-col.r)*k; col.g += (arr[1]-col.g)*k; col.b += (arr[2]-col.b)*k; }
@@ -889,6 +1370,11 @@ function setStageTint(k) {
   lerpRGB(dragonGlow.diffuse, t.glow, k);
   scene.environmentIntensity += (t.env - (scene.environmentIntensity || 0))*k;
   if (streakMat) lerpRGB(streakMat.emissiveColor, t.streak, k);
+  if (pipeline && t.bloom) {
+    pipeline.bloomThreshold += (t.bloom[0] - pipeline.bloomThreshold) * k;
+    pipeline.bloomWeight += (t.bloom[1] - pipeline.bloomWeight) * k;
+  }
+  if (t.trail) for (const tr of trails) lerpRGB(tr.ps.color1, t.trail, k);
 }
 
 function buildWarp() {
@@ -909,7 +1395,7 @@ function buildGates() {
   for (let i = 0; i < 4; i++) {
     const t = BABYLON.MeshBuilder.CreateTorus("gate"+i, { diameter: 34, thickness: 0.7, tessellation: 48 }, scene);
     const m = new BABYLON.StandardMaterial("gm"+i, scene); m.emissiveColor = new BABYLON.Color3(0.2,0.8,1.0); m.disableLighting = true;
-    t.material = m; t.rotation.x = Math.PI/2; t.position.set(0, Y_CENTER, 150 + i*130); gates.push(t);
+    t.material = m; t.rotation.x = Math.PI/2; t.position.set(0, Y_CENTER, 150 + i*130); gates.push(t); glowInclude(t);
   }
 }
 
@@ -1045,6 +1531,11 @@ function onAllAssetsLoaded() {
   buildObstacles(obstacleTemplates().length > 0);   // real models when any enemy loaded; boxes only as a last resort
   setPlayerCharacter(selectedCharIndex);
   dragonReady = true;
+  // models that arrive after the 15s fallback already opened the menu: refresh it
+  if (phase === 'menu') {
+    rebuildShowcase(); if (showcaseRoot) showcaseRoot.setEnabled(true);
+    setShowcaseHighlight(selectedCharIndex); renderCharPicker();
+  }
   maybeBeginIntro(false);
 }
 
@@ -1073,10 +1564,10 @@ function buildFireTrail() {
   fireTrail = new BABYLON.ParticleSystem("fire", 1600, scene);
   fireTrail.particleTexture = flare; fireTrail.emitter = dragonRoot;
   fireTrail.minEmitBox = new BABYLON.Vector3(-0.5,-0.2,-1.6); fireTrail.maxEmitBox = new BABYLON.Vector3(0.5,0.4,-0.6);
-  fireTrail.color1 = new BABYLON.Color4(1.0,0.75,0.2,1.0); fireTrail.color2 = new BABYLON.Color4(1.0,0.25,0.05,1.0);
+  fireTrail.color1 = new BABYLON.Color4(1.0,0.62,0.18,0.6); fireTrail.color2 = new BABYLON.Color4(1.0,0.22,0.05,0.55);
   fireTrail.colorDead = new BABYLON.Color4(0.2,0.02,0.0,0.0);
-  fireTrail.minSize = 0.25; fireTrail.maxSize = 0.95; fireTrail.minLifeTime = 0.14; fireTrail.maxLifeTime = 0.34;
-  fireTrail.emitRate = 340; fireTrail.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
+  fireTrail.minSize = 0.1; fireTrail.maxSize = 0.42; fireTrail.minLifeTime = 0.08; fireTrail.maxLifeTime = 0.2;
+  fireTrail.emitRate = 260; fireTrail.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
   fireTrail.direction1 = new BABYLON.Vector3(-0.25,-0.15,-4); fireTrail.direction2 = new BABYLON.Vector3(0.25,0.25,-7);
   fireTrail.minEmitPower = 2; fireTrail.maxEmitPower = 5; fireTrail.updateSpeed = 0.012; fireTrail.start();
 
@@ -1091,13 +1582,10 @@ function buildFireTrail() {
 
 function buildHeals() {
   for (let i = 0; i < 3; i++) {
-    const h = BABYLON.MeshBuilder.CreatePolyhedron("heal"+i, { type: 1, size: 1.0 }, scene); // octahedron
-    const m = new BABYLON.StandardMaterial("hm"+i, scene);
-    m.emissiveColor = new BABYLON.Color3(0.15, 0.95, 0.4); m.diffuseColor = new BABYLON.Color3(0.1,0.6,0.25);
-    m.disableLighting = false; h.material = m;
+    const h = makeBubble("heal"+i, '💚', [0.25, 1.0, 0.5], 3.0);
     const ring = BABYLON.MeshBuilder.CreateTorus("hr"+i, { diameter: 3.0, thickness: 0.16, tessellation: 28 }, scene);
     const rm = new BABYLON.StandardMaterial("hrm"+i, scene); rm.emissiveColor = new BABYLON.Color3(0.2,1.0,0.5); rm.disableLighting = true;
-    ring.material = rm; ring.parent = h;
+    ring.material = rm; ring.parent = h; glowInclude(ring);
     h.metadata = { active: false, ring };
     h.setEnabled(false);
     heals.push(h);
@@ -1115,6 +1603,7 @@ function buildUnlockItem() {
   const rm = new BABYLON.StandardMaterial("unlkrm", scene); rm.emissiveColor = new BABYLON.Color3(1.0, 0.9, 0.4); rm.disableLighting = true;
   ring.material = rm; ring.parent = h;
   attachHalo(h, 6.0);   // bright golden aura so it reads as a special, shining pickup
+  glowInclude(h); glowInclude(ring);
   h.metadata = { active: false, ring, mat: m };
   h.setEnabled(false);
   unlockItem = h;
@@ -1134,6 +1623,7 @@ function buildSpecialItem() {
   const ring2 = BABYLON.MeshBuilder.CreateTorus("spcr2", { diameter: 3.2, thickness: 0.14, tessellation: 32 }, scene);
   ring2.material = rm; ring2.parent = h; ring2.rotation.x = Math.PI / 2;
   attachHalo(h, 7.0);
+  glowInclude(h); glowInclude(ring); glowInclude(ring2);
   h.metadata = { active: false, ring, ring2, mat: m };
   h.setEnabled(false);
   specialItem = h;
@@ -1164,7 +1654,7 @@ function buildSpecialFX() {
   const arm = new BABYLON.StandardMaterial("auraRingM", scene);
   arm.emissiveColor = new BABYLON.Color3(0.5, 0.85, 1.0); arm.disableLighting = true; arm.alpha = 0.9;
   auraRing.material = arm; auraRing.parent = dragonRoot; auraRing.rotation.x = Math.PI / 2;
-  auraRing.isPickable = false; auraRing.setEnabled(false);
+  auraRing.isPickable = false; auraRing.setEnabled(false); glowInclude(auraRing);
 
   // shatter burst — emitter is a bare Vector3 we reposition per hit; already-emitted
   // particles keep their own positions, so one system handles overlapping bursts.
@@ -1180,6 +1670,691 @@ function buildSpecialFX() {
   specialShatter.gravity = new BABYLON.Vector3(0, -14, 0);
   specialShatter.minEmitPower = 8; specialShatter.maxEmitPower = 20; specialShatter.updateSpeed = 0.014;
   specialShatter.emitRate = 0; specialShatter.start();
+}
+
+// ======================================================================
+//  COLLECTIBLES — ⭐ stars in patterns, 🌈 boost rings, 🎁 power-up bubbles
+// ======================================================================
+function glowInclude(m) { if (glowLayer && m) glowLayer.addIncludedOnlyMesh(m); }
+
+// A chunky faceted 5-point star (two pyramids joined at the rim) — reads as a
+// shiny golden gem from any angle, and costs a few dozen triangles.
+function makeStarMesh(name) {
+  const pos = [], ind = [], N = 5, R = 1, r = 0.48, T = 0.36;
+  pos.push(0, 0, T, 0, 0, -T);
+  for (let i = 0; i < N * 2; i++) {
+    const a = Math.PI / 2 + i * Math.PI / N, rad = i % 2 ? r : R;
+    pos.push(Math.cos(a) * rad, Math.sin(a) * rad, 0);
+  }
+  for (let i = 0; i < N * 2; i++) {
+    const a = 2 + i, b = 2 + ((i + 1) % (N * 2));
+    ind.push(0, b, a); ind.push(1, a, b);
+  }
+  const vd = new BABYLON.VertexData(); const nrm = [];
+  BABYLON.VertexData.ComputeNormals(pos, ind, nrm);
+  vd.positions = pos; vd.indices = ind; vd.normals = nrm;
+  const m = new BABYLON.Mesh(name, scene); vd.applyToMesh(m);
+  m.convertToFlatShadedMesh();
+  return m;
+}
+
+let starSparkle = null;
+function buildStars() {
+  starSrc = makeStarMesh("starSrc");
+  const mat = new BABYLON.StandardMaterial("starMat", scene);
+  mat.diffuseColor = new BABYLON.Color3(1.0, 0.8, 0.2);
+  mat.emissiveColor = new BABYLON.Color3(0.85, 0.55, 0.05);
+  mat.specularColor = new BABYLON.Color3(1, 1, 0.85); mat.specularPower = 20;
+  mat.backFaceCulling = false;
+  starSrc.material = mat; starSrc.isVisible = false; starSrc.isPickable = false;
+  glowInclude(starSrc);
+  for (let i = 0; i < NUM_STARS; i++) {
+    const inst = starSrc.createInstance("star" + i);
+    inst.isPickable = false; inst.setEnabled(false);
+    inst.scaling.set(0.95, 0.95, 0.95);
+    starPool.push({ m: inst, active: false, ph: Math.random() * 6 });
+  }
+  starSparkle = new BABYLON.ParticleSystem("starSpk", LOW_FX ? 300 : 600, scene);
+  starSparkle.particleTexture = createFlare(); starSparkle.emitter = new BABYLON.Vector3(0, 0, 0);
+  starSparkle.createSphereEmitter(0.4);
+  starSparkle.color1 = new BABYLON.Color4(1, 0.95, 0.5, 1); starSparkle.color2 = new BABYLON.Color4(1, 0.7, 0.2, 1);
+  starSparkle.colorDead = new BABYLON.Color4(1, 0.5, 0, 0);
+  starSparkle.minSize = 0.15; starSparkle.maxSize = 0.55; starSparkle.minLifeTime = 0.2; starSparkle.maxLifeTime = 0.45;
+  starSparkle.minEmitPower = 3; starSparkle.maxEmitPower = 8; starSparkle.emitRate = 0;
+  starSparkle.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD; starSparkle.updateSpeed = 0.016; starSparkle.start();
+}
+
+function rainbowTexture(name, w, h, vertical) {
+  const dt = new BABYLON.DynamicTexture(name, { width: w, height: h }, scene, false);
+  const ctx = dt.getContext();
+  const g = vertical ? ctx.createLinearGradient(0, 0, 0, h) : ctx.createLinearGradient(0, 0, w, 0);
+  const cols = ['#ff3b5c', '#ff9a2f', '#ffe23a', '#4cff7a', '#3dc8ff', '#6a6bff', '#d65cff', '#ff3b5c'];
+  cols.forEach((c, i) => g.addColorStop(i / (cols.length - 1), c));
+  ctx.fillStyle = g; ctx.fillRect(0, 0, w, h); dt.update();
+  return dt;
+}
+function buildRings() {
+  ringSrc = BABYLON.MeshBuilder.CreateTorus("ringSrc", { diameter: 6.4, thickness: 0.5, tessellation: 48 }, scene);
+  const m = new BABYLON.StandardMaterial("ringMat", scene);
+  m.emissiveTexture = rainbowTexture("rainbowTex", 256, 8, false);
+  m.diffuseColor = new BABYLON.Color3(0, 0, 0); m.disableLighting = true;
+  ringSrc.material = m; ringSrc.isVisible = false; ringSrc.isPickable = false;
+  glowInclude(ringSrc);
+  for (let i = 0; i < NUM_RINGS; i++) {
+    const inst = ringSrc.createInstance("ring" + i);
+    inst.isPickable = false; inst.setEnabled(false); inst.rotation.x = Math.PI / 2;
+    ringPool.push({ m: inst, active: false, done: false, pop: 0 });
+  }
+}
+
+// Emoji billboard (drawn once into a small canvas texture) inside a glassy bubble.
+function emojiTexture(name, label, color) {
+  const sz = 256, dt = new BABYLON.DynamicTexture(name, { width: sz, height: sz }, scene, true);
+  const ctx = dt.getContext();
+  ctx.clearRect(0, 0, sz, sz);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  if (/^[×x]\d/.test(label)) {
+    ctx.font = '900 150px system-ui, sans-serif';
+    ctx.lineWidth = 16; ctx.strokeStyle = '#7a2a00'; ctx.strokeText(label, sz / 2, sz / 2 + 8);
+    ctx.fillStyle = color || '#ffe23a'; ctx.fillText(label, sz / 2, sz / 2 + 8);
+  } else {
+    ctx.font = '170px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+    ctx.fillText(label, sz / 2, sz / 2 + 12);
+  }
+  dt.hasAlpha = true; dt.update();
+  return dt;
+}
+function makeBubble(name, label, rgb, size) {
+  size = size || 3.0;
+  const root = BABYLON.MeshBuilder.CreateSphere(name, { diameter: size, segments: 16 }, scene);
+  const bm = new BABYLON.StandardMaterial(name + "M", scene);
+  bm.diffuseColor = new BABYLON.Color3(0, 0, 0); bm.specularColor = new BABYLON.Color3(1, 1, 1); bm.specularPower = 64;
+  bm.emissiveColor = new BABYLON.Color3(rgb[0] * 0.5, rgb[1] * 0.5, rgb[2] * 0.5);
+  bm.alpha = 0.42;
+  bm.emissiveFresnelParameters = new BABYLON.FresnelParameters();
+  bm.emissiveFresnelParameters.bias = 0.15; bm.emissiveFresnelParameters.power = 2.2;
+  bm.emissiveFresnelParameters.leftColor = new BABYLON.Color3(rgb[0], rgb[1], rgb[2]);
+  bm.emissiveFresnelParameters.rightColor = new BABYLON.Color3(rgb[0] * 0.1, rgb[1] * 0.1, rgb[2] * 0.1);
+  root.material = bm; root.isPickable = false;
+  const icon = BABYLON.MeshBuilder.CreatePlane(name + "I", { size: size * 0.72 }, scene);
+  const im = new BABYLON.StandardMaterial(name + "IM", scene);
+  im.diffuseTexture = emojiTexture(name + "T", label); im.diffuseTexture.hasAlpha = true; im.useAlphaFromDiffuseTexture = true;
+  im.emissiveColor = new BABYLON.Color3(1, 1, 1); im.disableLighting = true; im.backFaceCulling = false;
+  icon.material = im; icon.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL; icon.parent = root; icon.isPickable = false;
+  glowInclude(root);
+  return root;
+}
+const POWER_DEFS = {
+  mag: { label: '🧲', rgb: [1.0, 0.35, 0.35], name: 'マグネット' },
+  shd: { label: '🛡️', rgb: [0.3, 0.8, 1.0], name: 'シールド' },
+  x2:  { label: '×2', rgb: [1.0, 0.75, 0.2], name: 'スター2倍' },
+};
+function buildPowerItems() {
+  Object.keys(POWER_DEFS).forEach(k => {
+    const d = POWER_DEFS[k];
+    const b = makeBubble("pw_" + k, d.label, d.rgb, 3.2);
+    const ring = BABYLON.MeshBuilder.CreateTorus("pwr_" + k, { diameter: 4.2, thickness: 0.14, tessellation: 32 }, scene);
+    const rm = new BABYLON.StandardMaterial("pwrm_" + k, scene); rm.emissiveColor = new BABYLON.Color3(d.rgb[0], d.rgb[1], d.rgb[2]); rm.disableLighting = true;
+    ring.material = rm; ring.parent = b; ring.isPickable = false; glowInclude(ring);
+    b.metadata = { active: false, ring, kind: k };
+    b.setEnabled(false);
+    powerItems[k] = b;
+  });
+}
+
+// Player-worn FX: wing-tip trails, the shield bubble, and the magnet swirl.
+function buildPlayerFX() {
+  // wing-tip sparkle trails. Particles (not a ribbon mesh) so the trail length can
+  // follow the speed — a fixed-length ribbon reached back past the chase camera.
+  const flare = createFlare();
+  const offs = LOW_FX ? [[0, 0.2, -1.0]] : [[-1.6, 0.15, -0.4], [1.6, 0.15, -0.4]];
+  offs.forEach((o, i) => {
+    const gen = new BABYLON.TransformNode("trailGen" + i, scene);
+    gen.parent = dragonBank; gen.position.set(o[0], o[1], o[2]);
+    const ps = new BABYLON.ParticleSystem("wingTrail" + i, LOW_FX ? 220 : 360, scene);
+    ps.particleTexture = flare; ps.emitter = new BABYLON.Vector3(0, 0, 0);
+    ps.minEmitBox = new BABYLON.Vector3(0, 0, 0); ps.maxEmitBox = new BABYLON.Vector3(0, 0, 0);
+    ps.color1 = new BABYLON.Color4(1.0, 0.55, 0.15, 0.9); ps.color2 = new BABYLON.Color4(1.0, 0.95, 0.8, 0.9);
+    ps.colorDead = new BABYLON.Color4(0, 0, 0, 0);
+    ps.minSize = LOW_FX ? 0.3 : 0.2; ps.maxSize = LOW_FX ? 0.55 : 0.42;
+    ps.minLifeTime = 0.12; ps.maxLifeTime = 0.18;
+    ps.direction1 = new BABYLON.Vector3(-0.15, -0.15, 0); ps.direction2 = new BABYLON.Vector3(0.15, 0.15, 0);
+    ps.minEmitPower = 0; ps.maxEmitPower = 1; ps.emitRate = 0;
+    ps.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD; ps.updateSpeed = 0.016;
+    ps.start();
+    trails.push({ ps, gen });
+  });
+
+  shieldMesh = BABYLON.MeshBuilder.CreateSphere("shield", { diameter: 4.8, segments: 20 }, scene);
+  const sm = new BABYLON.StandardMaterial("shieldM", scene);
+  sm.diffuseColor = new BABYLON.Color3(0, 0, 0); sm.emissiveColor = new BABYLON.Color3(0.05, 0.25, 0.4); sm.alpha = 0.2;
+  sm.emissiveFresnelParameters = new BABYLON.FresnelParameters();
+  sm.emissiveFresnelParameters.bias = 0.1; sm.emissiveFresnelParameters.power = 2.4;
+  sm.emissiveFresnelParameters.leftColor = new BABYLON.Color3(0.5, 0.95, 1.0);
+  sm.emissiveFresnelParameters.rightColor = new BABYLON.Color3(0.0, 0.1, 0.25);
+  sm.backFaceCulling = true;
+  shieldMesh.material = sm; shieldMesh.parent = dragonRoot; shieldMesh.isPickable = false; shieldMesh.setEnabled(false);
+  glowInclude(shieldMesh);
+
+  magnetRing = BABYLON.MeshBuilder.CreateTorus("magRing", { diameter: 5.6, thickness: 0.1, tessellation: 40 }, scene);
+  const mm = new BABYLON.StandardMaterial("magRingM", scene);
+  mm.emissiveColor = new BABYLON.Color3(1.0, 0.4, 0.4); mm.disableLighting = true; mm.alpha = 0.7;
+  magnetRing.material = mm; magnetRing.parent = dragonRoot; magnetRing.isPickable = false; magnetRing.setEnabled(false);
+  glowInclude(magnetRing);
+}
+let trailsOn = false;
+function setTrailsVisible(v) {
+  trailsOn = v;
+  for (const tr of trails) { tr.ps.emitRate = v ? (LOW_FX ? 140 : 220) : 0; if (!v) tr.ps.reset(); }
+}
+function resetTrails() { for (const tr of trails) tr.ps.reset(); }
+// Keep the trail emitters glued to the wing tips; the emit box stretches back over
+// the distance flown this frame (so the trail is continuous, not dotted) and the
+// lifetime shrinks with speed so the trail is always ~5m long.
+function updateTrails(dt, spd) {
+  if (!trailsOn) return;
+  const life = Math.max(0.05, Math.min(0.22, 5 / Math.max(1, spd)));
+  for (const tr of trails) {
+    const p = tr.gen.getAbsolutePosition(), e = tr.ps.emitter;
+    e.x = p.x; e.y = p.y; e.z = p.z;
+    tr.ps.minEmitBox.z = -spd * dt; tr.ps.maxEmitBox.z = 0;
+    tr.ps.minLifeTime = life * 0.7; tr.ps.maxLifeTime = life;
+  }
+}
+
+// ---- floating text projected from world space ----
+const _popPool = [];
+function popAt(pos, text, cls) {
+  if (!camera || !pos) return;
+  let x, y;
+  try {
+    const w = engine.getRenderWidth(), h = engine.getRenderHeight();
+    const p = BABYLON.Vector3.Project(pos, BABYLON.Matrix.Identity(), scene.getTransformMatrix(), camera.viewport.toGlobal(w, h));
+    const k = canvas.clientWidth / w;
+    x = p.x * k; y = p.y * (canvas.clientHeight / h);
+    if (p.z < 0 || p.z > 1) return;
+  } catch (_) { return; }
+  let el = _popPool.find(e => !e._busy);
+  if (!el) { if (_popPool.length >= 14) return; el = document.createElement('div'); document.body.appendChild(el); _popPool.push(el); }
+  el._busy = true;
+  el.className = 'pop ' + (cls || '');
+  el.textContent = text;
+  el.style.left = Math.max(40, Math.min(innerWidth - 40, x)) + 'px';
+  el.style.top = Math.max(60, Math.min(innerHeight - 60, y)) + 'px';
+  el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
+  el.style.display = 'block';
+  clearTimeout(el._t); el._t = setTimeout(() => { el._busy = false; el.style.display = 'none'; }, 900);
+}
+function popOnPlayer(text, cls) {
+  const p = dragonRoot.position;
+  popAt(new BABYLON.Vector3(p.x, p.y + 2.2, p.z + 1), text, cls);
+}
+
+// Credit n stars to this run (×2 power doubles), optionally with a floating label.
+function addStars(n, pos, label, cls) {
+  const k = x2T > 0 ? 2 : 1;
+  runStars += n * k;
+  if (runStats) runStats.stars = runStars;
+  const box = $('starBox'); if (box) { box.classList.remove('bump'); void box.offsetWidth; box.classList.add('bump'); }
+  if (label) { if (pos) popAt(pos, label + (k > 1 ? ' ×2' : ''), cls || 'gold'); else popOnPlayer(label + (k > 1 ? ' ×2' : ''), cls || 'gold'); }
+}
+
+// Is a spot on (or right next to) an active star / ring path? Used to keep
+// enemies from being dropped straight onto a trail of stars.
+function pathBlocked(x, y, z) {
+  for (const s of starPool) {
+    if (!s.active) continue;
+    const p = s.m.position; if (Math.abs(p.z - z) > 3.2) continue;
+    const dx = p.x - x, dy = p.y - y; if (dx * dx + dy * dy < 7.5) return true;
+  }
+  for (const r of ringPool) {
+    if (!r.active) continue;
+    const p = r.m.position; if (Math.abs(p.z - z) > 4.5) continue;
+    const dx = p.x - x, dy = p.y - y; if (dx * dx + dy * dy < 22) return true;
+  }
+  return false;
+}
+function clearObstaclesNear(x, y, z, rad) {
+  for (const o of obstacles) {
+    if (o.metadata.idle) continue;
+    const p = o.position; if (Math.abs(p.z - z) > 3.5) continue;
+    const dx = p.x - x, dy = p.y - y;
+    if (dx * dx + dy * dy < rad * rad) {
+      const sx = dx >= 0 ? 1 : -1;
+      let nx = x + sx * (rad + 1.5);
+      if (Math.abs(nx) > LANE_W) nx = x - sx * (rad + 1.5);
+      p.x = Math.max(-LANE_W, Math.min(LANE_W, nx));
+    }
+  }
+}
+
+// Lay down a pattern of stars starting at world z `z0`.
+const clampX = v => Math.max(-LANE_W + 1, Math.min(LANE_W - 1, v));
+const clampY = v => Math.max(Y_CENTER - LANE_H + 1, Math.min(Y_CENTER + LANE_H - 1, v));
+function spawnStarPattern(z0) {
+  const free = starPool.filter(s => !s.active);
+  if (free.length < 6) return;
+  const pts = [];
+  const x0 = (Math.random() * 2 - 1) * (LANE_W - 4), y0 = Y_CENTER + (Math.random() * 2 - 1) * (LANE_H - 3);
+  const kind = Math.floor(Math.random() * 6), gap = 3.4;
+  if (kind === 0) {            // straight line
+    for (let i = 0; i < 8; i++) pts.push([x0, y0, z0 + i * gap]);
+  } else if (kind === 1) {     // snake (sideways wave)
+    for (let i = 0; i < 12; i++) pts.push([clampX(x0 + Math.sin(i * 0.55) * 5), y0, z0 + i * gap]);
+  } else if (kind === 2) {     // hop (up & over arc)
+    for (let i = 0; i < 10; i++) pts.push([x0, clampY(y0 - 3 + Math.sin(i / 9 * Math.PI) * 7), z0 + i * gap]);
+  } else if (kind === 3) {     // spiral corkscrew
+    for (let i = 0; i < 14; i++) { const a = i * 0.6; pts.push([clampX(x0 + Math.cos(a) * 3.2), clampY(y0 + Math.sin(a) * 3.2), z0 + i * gap * 0.8]); }
+  } else if (kind === 4) {     // diagonal sweep across the lane
+    const x1 = -Math.sign(x0 || 1) * (LANE_W - 4);
+    for (let i = 0; i < 11; i++) { const u = i / 10; pts.push([x0 + (x1 - x0) * u, y0, z0 + i * gap]); }
+  } else {                     // zig-zag
+    for (let i = 0; i < 12; i++) pts.push([clampX(x0 + ((i % 4) < 2 ? -3 : 3)), clampY(y0 + (i % 2 ? 1.2 : -1.2)), z0 + i * gap]);
+  }
+  pts.slice(0, free.length).forEach((q, i) => {
+    const s = free[i]; s.active = true; s.m.setEnabled(true);
+    s.m.position.set(q[0], q[1], q[2]); s.m.rotation.set(0, 0, 0); s.m.scaling.setAll(0.95);
+    clearObstaclesNear(q[0], q[1], q[2], 2.8);
+  });
+}
+function spawnRingRun(z0) {
+  const n = 4 + Math.floor(Math.random() * 2);
+  let x = (Math.random() * 2 - 1) * (LANE_W - 5), y = Y_CENTER + (Math.random() * 2 - 1) * (LANE_H - 4);
+  ringSeq = { total: n, passed: 0, seen: 0 };
+  for (let i = 0; i < n && i < ringPool.length; i++) {
+    const r = ringPool[i];
+    r.active = true; r.done = false; r.pop = 0; r.idx = i;
+    r.m.setEnabled(true); r.m.scaling.setAll(1);
+    r.m.position.set(x, y, z0 + i * 26);
+    clearObstaclesNear(x, y, z0 + i * 26, 4.8);
+    x = Math.max(-LANE_W + 4, Math.min(LANE_W - 4, x + (Math.random() * 2 - 1) * 5));
+    y = Math.max(Y_CENTER - LANE_H + 3, Math.min(Y_CENTER + LANE_H - 3, y + (Math.random() * 2 - 1) * 3.5));
+  }
+}
+function spawnPowerItem() {
+  const keys = Object.keys(POWER_DEFS).filter(k =>
+    !powerItems[k].metadata.active && !(k === 'shd' && shieldOn) && !(k === 'mag' && magnetT > 0) && !(k === 'x2' && x2T > 0));
+  if (!keys.length) return;
+  const k = keys[Math.floor(Math.random() * keys.length)], b = powerItems[k];
+  b.metadata.active = true; b.setEnabled(true);
+  b.position.set((Math.random() * 2 - 1) * (LANE_W - 3), Y_CENTER + (Math.random() * 2 - 1) * (LANE_H - 3), distance + SPAWN_AHEAD);
+  clearObstaclesNear(b.position.x, b.position.y, b.position.z, 3.5);
+}
+function pickupPower(b) {
+  const k = b.metadata.kind, d = POWER_DEFS[k];
+  b.metadata.active = false; b.setEnabled(false);
+  if (runStats) runStats.power++;
+  if (sparkBurst) sparkBurst.manualEmitCount = 160;
+  Sound.play('power');
+  if (k === 'mag') { magnetT = MAGNET_TIME; if (magnetRing) magnetRing.setEnabled(true); }
+  if (k === 'shd') { shieldOn = true; if (shieldMesh) shieldMesh.setEnabled(true); }
+  if (k === 'x2') { x2T = X2_TIME; }
+  flashToast(d.label + ' ' + d.name + '！', '#' + d.rgb.map(v => Math.round(v * 255).toString(16).padStart(2, '0')).join(''));
+  lastHudKey = '';
+}
+
+// Per-frame update for stars, rings and power items while playing.
+function updateCollectibles(dt, tms, dragZ) {
+  const px = dragonRoot.position.x, py = dragonRoot.position.y;
+  // spawners
+  if (distance >= nextStarAt) { spawnStarPattern(dragZ + SPAWN_AHEAD); nextStarAt = distance + 55 + Math.random() * 55; }
+  if (distance >= nextRingAt && !ringPool.some(r => r.active)) { spawnRingRun(dragZ + SPAWN_AHEAD); nextRingAt = distance + 380 + Math.random() * 320; }
+  if (distance >= nextPowerAt) { spawnPowerItem(); nextPowerAt = distance + 480 + Math.random() * 380; }
+
+  // stars
+  const mag = magnetT > 0, MR = 13;
+  for (const s of starPool) {
+    if (!s.active) continue;
+    const p = s.m.position;
+    s.m.rotation.y += dt * 3.2;
+    const dz = p.z - dragZ;
+    if (dz < -4) { s.active = false; s.m.setEnabled(false); starChain = 0; continue; }
+    if (mag && dz < 34 && dz > -2) {
+      const dx = px - p.x, dy = py - p.y, dd = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+      if (dd < MR + 16) { const pull = Math.min(1, dt * (8 + 60 / dd)); p.x += dx * pull; p.y += dy * pull; p.z -= dz * pull * 0.8; }
+    }
+    if (Math.abs(p.z - dragZ) < 1.8) {
+      const dx = p.x - px, dy = p.y - py;
+      if (dx * dx + dy * dy < 5.2) {
+        s.active = false; s.m.setEnabled(false);
+        starChain++;   // the chain only breaks when a star is missed
+        if (runStats) runStats.chain = Math.max(runStats.chain, starChain);
+        addStars(1);
+        Sound.play('star', starChain);
+        if (starSparkle) { const e = starSparkle.emitter; e.x = p.x; e.y = p.y; e.z = p.z; starSparkle.manualEmitCount = (starSparkle.manualEmitCount || 0) + 10; }
+        if (starChain > 0 && starChain % 10 === 0) { addStars(5, null, '🔗 ' + starChain + 'れんぞく！ ⭐+5'); }
+      }
+    }
+  }
+
+  // rings
+  for (const r of ringPool) {
+    if (!r.active) continue;
+    const p = r.m.position;
+    if (r.pop > 0) {   // passed: burst outward and fade
+      r.pop -= dt; const u = 1 - r.pop / 0.35; r.m.scaling.setAll(1 + u * 1.6);
+      if (r.pop <= 0) { r.active = false; r.m.setEnabled(false); }
+      continue;
+    }
+    r.m.rotation.z = Math.sin(tms * 0.002 + r.idx) * 0.3;
+    r.m.rotation.y = tms * 0.0012;   // slow twirl so the rainbow shimmers
+    const dz = p.z - dragZ;
+    if (!r.done && dz < 0) {
+      r.done = true; ringSeq && ringSeq.seen++;
+      const dx = p.x - px, dy = p.y - py;
+      if (dx * dx + dy * dy < 3.0 * 3.0) {
+        r.pop = 0.35;
+        if (runStats) runStats.rings++;
+        if (ringSeq) ringSeq.passed++;
+        addStars(3, new BABYLON.Vector3(p.x, p.y + 1.5, p.z + 2), ['NICE!', 'GREAT!', 'SUPER!', 'WOW!', 'AMAZING!'][Math.min(4, r.idx)] + ' ⭐+3', 'ring');
+        Sound.play('ring', r.idx);
+        shake = Math.max(shake, 0.12);
+        if (pipeline) pipeline.chromaticAberration.aberrationAmount = 18;
+        if (ringSeq && ringSeq.seen === ringSeq.total && ringSeq.passed === ringSeq.total) {
+          setTimeout(() => { if (phase === 'playing') { addStars(10, null, '🌈 PERFECT! ⭐+10', 'big'); Sound.play('perfect'); launchConfetti(24); } }, 250);
+        }
+      }
+    }
+    if (dz < -8) { r.active = false; r.m.setEnabled(false); }
+  }
+
+  // power bubbles
+  for (const k in powerItems) {
+    const b = powerItems[k]; if (!b.metadata.active) continue;
+    b.metadata.ring.rotation.z += dt * 2.0; b.metadata.ring.rotation.x = Math.sin(tms * 0.002) * 0.8;
+    const s = 1 + Math.sin(tms * 0.007) * 0.1; b.scaling.set(s, s, s);
+    b.position.y += Math.sin(tms * 0.003) * dt * 0.8;
+    const dz = b.position.z - dragZ;
+    if (dz < -6) { b.metadata.active = false; b.setEnabled(false); continue; }
+    if (Math.abs(dz) < 2.4) {
+      const dx = b.position.x - px, dy = b.position.y - py;
+      if (dx * dx + dy * dy < 7.5) pickupPower(b);
+    }
+  }
+
+  // active power timers + worn FX
+  if (magnetT > 0) {
+    magnetT -= dt;
+    if (magnetRing) { magnetRing.rotation.x = 0.35 + Math.sin(tms * 0.004) * 0.25; magnetRing.rotation.z = Math.cos(tms * 0.003) * 0.25; magnetRing.material.alpha = magnetT < 2 ? (Math.floor(tms / 120) % 2 ? 0.2 : 0.7) : 0.7; }
+    if (magnetT <= 0) { magnetT = 0; if (magnetRing) magnetRing.setEnabled(false); lastHudKey = ''; }
+  }
+  if (x2T > 0) { x2T -= dt; if (x2T <= 0) { x2T = 0; lastHudKey = ''; } }
+  if (shieldOn && shieldMesh) {
+    const s = 1 + Math.sin(tms * 0.006) * 0.04; shieldMesh.scaling.set(s, s, s);
+    shieldMesh.rotation.y += dt * 0.8;
+  }
+}
+function clearCollectibles() {
+  starPool.forEach(s => { s.active = false; s.m.setEnabled(false); });
+  ringPool.forEach(r => { r.active = false; r.m.setEnabled(false); });
+  for (const k in powerItems) { powerItems[k].metadata.active = false; powerItems[k].setEnabled(false); }
+  ringSeq = null;
+  magnetT = 0; x2T = 0; shieldOn = false;
+  if (shieldMesh) shieldMesh.setEnabled(false);
+  if (magnetRing) magnetRing.setEnabled(false);
+}
+
+// ======================================================================
+//  SCENERY — stylised low-poly set dressing per stage, built from vertex-
+//  coloured primitives merged into ONE mesh per prop and drawn as instances
+//  (a handful of vertex buffers total, so it stays inside iOS's GPU budget).
+// ======================================================================
+function paint(mesh, rgb, jitter) {
+  const n = mesh.getTotalVertices(), cols = new Array(n * 4);
+  for (let i = 0; i < n; i++) {
+    const j = jitter ? (Math.random() * 2 - 1) * jitter : 0;
+    cols[i * 4] = Math.max(0, rgb[0] + j); cols[i * 4 + 1] = Math.max(0, rgb[1] + j); cols[i * 4 + 2] = Math.max(0, rgb[2] + j); cols[i * 4 + 3] = 1;
+  }
+  mesh.setVerticesData(BABYLON.VertexBuffer.ColorKind, cols);
+  return mesh;
+}
+function mergeProp(name, parts, opts) {
+  opts = opts || {};
+  const m = BABYLON.Mesh.MergeMeshes(parts, true, true);
+  m.name = name;
+  if (opts.flat !== false) m.convertToFlatShadedMesh();
+  const mat = new BABYLON.StandardMaterial(name + "M", scene);
+  mat.diffuseColor = new BABYLON.Color3(1, 1, 1);
+  mat.specularColor = new BABYLON.Color3(opts.spec || 0.08, opts.spec || 0.08, opts.spec || 0.08);
+  if (opts.emissive) mat.emissiveColor = new BABYLON.Color3(opts.emissive[0], opts.emissive[1], opts.emissive[2]);
+  m.material = mat; m.isVisible = false; m.isPickable = false;
+  return m;
+}
+// Lumpy rocks: push each vertex in/out radially. Coincident vertices (ico
+// spheres duplicate them per face) share one offset so no cracks open up.
+function jitterVerts(mesh, amt) {
+  const pos = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind).slice();
+  const seen = {};
+  for (let i = 0; i < pos.length; i += 3) {
+    const key = pos[i].toFixed(3) + ',' + pos[i + 1].toFixed(3) + ',' + pos[i + 2].toFixed(3);
+    const k = seen[key] || (seen[key] = 1 + (Math.random() * 2 - 1) * amt);
+    pos[i] *= k; pos[i + 1] *= k; pos[i + 2] *= k;
+  }
+  mesh.setVerticesData(BABYLON.VertexBuffer.PositionKind, pos);
+  const nrm = []; BABYLON.VertexData.ComputeNormals(pos, mesh.getIndices(), nrm);
+  mesh.setVerticesData(BABYLON.VertexBuffer.NormalKind, nrm);
+}
+const FLOOR_Y = Y_CENTER - LANE_H - 1.6;
+// A recycled prop: an instance plus how to (re)place it ahead of the player.
+function addProp(stage, src, count, spanZ, place, anim) {
+  for (let i = 0; i < count; i++) {
+    const inst = src.createInstance(src.name + "_" + i);
+    inst.isPickable = false; inst.setEnabled(false);
+    const it = { m: inst, span: spanZ, place, anim, ph: Math.random() * 6.28 };
+    place(inst, -30 + (i / count) * spanZ + Math.random() * (spanZ / count));
+    sceneryStage[stage].push(it);
+  }
+}
+const side = () => (Math.random() < 0.5 ? -1 : 1);
+const rnd = (a, b) => a + Math.random() * (b - a);
+
+function buildScenery() {
+  const Q = LOW_FX ? 0.55 : 1;   // density multiplier
+
+  // ── 1st: マグマだまり — basalt spires with glowing tips, drifting magma orbs, far volcanoes ──
+  {
+    const parts = [];
+    let y = 0;
+    for (let k = 0; k < 4; k++) {
+      const h = rnd(4, 7), d = 3.6 - k * 0.55;
+      const c = BABYLON.MeshBuilder.CreateCylinder("sp", { height: h, diameterTop: d * 0.8, diameterBottom: d, tessellation: 6 }, scene);
+      c.position.y = y + h / 2; c.rotation.y = k * 0.5; y += h * 0.92;
+      paint(c, k === 0 ? [0.34, 0.1, 0.04] : [0.13 + k * 0.02, 0.09, 0.09], 0.03); parts.push(c);
+    }
+    const tip = BABYLON.MeshBuilder.CreateCylinder("spt", { height: 2.2, diameterTop: 0, diameterBottom: 1.6, tessellation: 6 }, scene);
+    tip.position.y = y + 1.1; paint(tip, [0.9, 0.35, 0.08]); parts.push(tip);
+    const spire = mergeProp("spire", parts, { emissive: [0.06, 0.02, 0.01] });
+    addProp(0, spire, Math.round(22 * Q), 460, (m, z) => {
+      const s = rnd(0.9, 2.0);
+      m.position.set(side() * rnd(22, 50), FLOOR_Y - 1, z); m.scaling.set(s * 1.7, s * rnd(0.7, 1.3), s * 1.7); m.rotation.y = rnd(0, 6);
+    });
+
+    const orb = BABYLON.MeshBuilder.CreateIcoSphere("magOrb", { radius: 1, subdivisions: 1 }, scene);
+    jitterVerts(orb, 0.18);
+    const om = new BABYLON.StandardMaterial("magOrbM", scene);
+    om.diffuseColor = new BABYLON.Color3(0.2, 0.05, 0.02); om.emissiveColor = new BABYLON.Color3(1.0, 0.42, 0.08); om.specularColor = new BABYLON.Color3(0, 0, 0);
+    orb.convertToFlatShadedMesh();
+    orb.material = om; orb.isVisible = false; orb.isPickable = false; glowInclude(orb);
+    addProp(0, orb, Math.round(14 * Q), 420, (m, z) => {
+      const s = rnd(0.5, 1.4);
+      m.position.set(side() * rnd(19, 34), rnd(Y_CENTER - 4, Y_CENTER + 16), z); m.scaling.setAll(s);
+    }, (it, dt, t) => { it.m.rotation.y += dt * 0.6; it.m.position.y += Math.sin(t * 0.0015 + it.ph) * dt * 0.8; });
+
+    const vparts = [];
+    const cone = BABYLON.MeshBuilder.CreateCylinder("vc", { height: 40, diameterTop: 10, diameterBottom: 70, tessellation: 9 }, scene);
+    cone.position.y = 20; paint(cone, [0.11, 0.07, 0.07], 0.03); vparts.push(cone);
+    const lava = BABYLON.MeshBuilder.CreateCylinder("vl", { height: 1.2, diameter: 9, tessellation: 9 }, scene);
+    lava.position.y = 40.2; paint(lava, [1.0, 0.55, 0.1]); vparts.push(lava);
+    const volcano = mergeProp("volcano", vparts, { emissive: [0.05, 0.015, 0.005] });
+    addProp(0, volcano, LOW_FX ? 3 : 5, 900, (m, z) => {
+      const s = rnd(0.8, 1.5);
+      m.position.set(side() * rnd(90, 150), FLOOR_Y - 4, z + 250); m.scaling.set(s, s * rnd(0.8, 1.3), s);
+    });
+  }
+
+  // ── 2nd: 岩の草原 — floating grassy islands with trees, puffy clouds, rainbow arches ──
+  {
+    const parts = [];
+    const top = BABYLON.MeshBuilder.CreateCylinder("it", { height: 1.6, diameter: 10, tessellation: 9 }, scene);
+    paint(top, [0.36, 0.78, 0.25], 0.05); parts.push(top);
+    const dirt = BABYLON.MeshBuilder.CreateCylinder("id", { height: 1.4, diameter: 10.2, tessellation: 9 }, scene);
+    dirt.position.y = -1.3; paint(dirt, [0.55, 0.36, 0.2], 0.04); parts.push(dirt);
+    const under = BABYLON.MeshBuilder.CreateCylinder("iu", { height: 7, diameterTop: 10, diameterBottom: 0.5, tessellation: 9 }, scene);
+    under.position.y = -5.5; paint(under, [0.46, 0.4, 0.38], 0.05); parts.push(under);
+    [[-2.2, 1.6], [2.0, -1.2], [0.4, 2.8]].forEach(([tx, tz], k) => {
+      const trunk = BABYLON.MeshBuilder.CreateCylinder("tt", { height: 2.2, diameter: 0.5, tessellation: 5 }, scene);
+      trunk.position.set(tx, 1.9, tz); paint(trunk, [0.45, 0.28, 0.14]); parts.push(trunk);
+      const leaf = BABYLON.MeshBuilder.CreateCylinder("tl", { height: 3.6, diameterTop: 0, diameterBottom: 2.8, tessellation: 7 }, scene);
+      leaf.position.set(tx, 4.4, tz); paint(leaf, k === 2 ? [0.2, 0.62, 0.3] : [0.16, 0.55, 0.22], 0.04); parts.push(leaf);
+    });
+    const fl = BABYLON.MeshBuilder.CreateIcoSphere("fl", { radius: 0.45, subdivisions: 0 }, scene);
+    fl.position.set(-0.6, 1.1, -2.5); paint(fl, [1.0, 0.45, 0.7]); parts.push(fl);
+    const fl2 = BABYLON.MeshBuilder.CreateIcoSphere("fl2", { radius: 0.4, subdivisions: 0 }, scene);
+    fl2.position.set(1.6, 1.05, 2.2); paint(fl2, [1.0, 0.9, 0.3]); parts.push(fl2);
+    const island = mergeProp("island", parts);
+    addProp(1, island, Math.round(16 * Q), 480, (m, z) => {
+      const s = rnd(0.7, 1.6);
+      m.position.set(side() * rnd(26, 60), rnd(Y_CENTER - 2, Y_CENTER + 18), z); m.scaling.setAll(s); m.rotation.y = rnd(0, 6);
+    }, (it, dt, t) => { it.m.position.y += Math.sin(t * 0.0008 + it.ph) * dt * 0.6; });
+
+    const cparts = [];
+    [[0, 0, 0, 3.2], [2.8, -0.4, 0.4, 2.4], [-2.7, -0.5, -0.3, 2.3], [1.2, 1.3, -0.5, 2.2], [-1.2, 1.0, 0.6, 2.0], [4.6, -0.9, 0, 1.6]].forEach(([x, y, z, r]) => {
+      const b = BABYLON.MeshBuilder.CreateSphere("cb", { diameter: r * 2, segments: 6 }, scene);
+      b.position.set(x, y, z); b.scaling.y = 0.8; paint(b, [1, 1, 1]); cparts.push(b);
+    });
+    const cloud = mergeProp("cloud", cparts, { emissive: [0.6, 0.64, 0.72] });
+    addProp(1, cloud, Math.round(18 * Q), 520, (m, z) => {
+      const s = rnd(1.0, 2.4);
+      m.position.set(side() * rnd(24, 80), rnd(Y_CENTER + 8, Y_CENTER + 34), z); m.scaling.set(s, s, s); m.rotation.y = rnd(0, 6);
+    }, (it, dt) => { it.m.position.x += dt * 0.8 * Math.sign(it.m.position.x); });
+
+    // rainbow arch: a flat half-ring ribbon textured with the rainbow gradient
+    const outer = [], inner = [];
+    for (let i = 0; i <= 32; i++) {
+      const a = Math.PI * i / 32;
+      outer.push(new BABYLON.Vector3(Math.cos(a) * 60, Math.sin(a) * 60, 0));
+      inner.push(new BABYLON.Vector3(Math.cos(a) * 52, Math.sin(a) * 52, 0));
+    }
+    const arch = BABYLON.MeshBuilder.CreateRibbon("rainbow", { pathArray: [outer, inner], sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+    const am = new BABYLON.StandardMaterial("rainbowM", scene);
+    am.emissiveTexture = rainbowTexture("archTex", 8, 256, true); am.disableLighting = true; am.alpha = 0.38; am.backFaceCulling = false;
+    am.diffuseColor = new BABYLON.Color3(0, 0, 0);
+    arch.material = am; arch.isVisible = false; arch.isPickable = false;
+    addProp(1, arch, 2, 1100, (m, z) => {
+      m.position.set(rnd(-30, 30), FLOOR_Y - 6, z + 320); m.rotation.y = rnd(-0.35, 0.35);
+    });
+  }
+
+  // ── 3rd: 宇宙空間 — tumbling asteroids, big ringed planets, glowing crystal shards ──
+  {
+    const ast = BABYLON.MeshBuilder.CreateIcoSphere("asteroid", { radius: 1, subdivisions: 1 }, scene);
+    jitterVerts(ast, 0.28); paint(ast, [0.42, 0.38, 0.45], 0.06);
+    const asteroid = mergeProp("asteroidP", [ast], { spec: 0.15 });
+    addProp(2, asteroid, Math.round(26 * Q), 440, (m, z) => {
+      const s = rnd(0.8, 3.2);
+      const a = rnd(0, 6.28), r = rnd(22, 52);
+      m.position.set(Math.cos(a) * r, Y_CENTER + Math.sin(a) * r * 0.7, z); m.scaling.set(s, s * rnd(0.7, 1.2), s); m.rotation.set(rnd(0, 6), rnd(0, 6), 0);
+    }, (it, dt) => { it.m.rotation.x += dt * 0.35; it.m.rotation.y += dt * 0.22; });
+
+    const cry = BABYLON.MeshBuilder.CreateCylinder("cry", { height: 3, diameterTop: 0, diameterBottom: 1.1, tessellation: 5 }, scene);
+    const cry2 = BABYLON.MeshBuilder.CreateCylinder("cry2", { height: 1.4, diameterTop: 1.1, diameterBottom: 0, tessellation: 5 }, scene);
+    cry.position.y = 1.5; cry2.position.y = -0.7;
+    paint(cry, [0.6, 0.85, 1.0]); paint(cry2, [0.6, 0.85, 1.0]);
+    const crystal = mergeProp("crystal", [cry, cry2], { emissive: [0.35, 0.3, 0.9], spec: 0.6 });
+    glowInclude(crystal);
+    addProp(2, crystal, Math.round(12 * Q), 420, (m, z) => {
+      const s = rnd(0.6, 1.4), a = rnd(0, 6.28), r = rnd(19, 32);
+      m.position.set(Math.cos(a) * r, Y_CENTER + Math.sin(a) * r * 0.65, z); m.scaling.setAll(s); m.rotation.set(rnd(0, 1), 0, rnd(-0.6, 0.6));
+    }, (it, dt) => { it.m.rotation.y += dt * 1.2; });
+
+    const planetCols = [['#ff9a5a', '#ffd08a', '#c85a3a', '#ffb070'], ['#6ad0ff', '#3a7bff', '#b8f0ff', '#2f4fcf'], ['#d68bff', '#ff8fd0', '#8a5cff', '#f0c8ff']];
+    planetCols.forEach((cols, k) => {
+      const tex = new BABYLON.DynamicTexture("planetTex" + k, { width: 64, height: 256 }, scene, false);
+      const ctx = tex.getContext();
+      for (let y = 0; y < 256; y += 8) { ctx.fillStyle = cols[Math.floor(Math.random() * cols.length)]; ctx.fillRect(0, y, 64, 8 + Math.random() * 10); }
+      tex.update();
+      const pl = BABYLON.MeshBuilder.CreateSphere("planet" + k, { diameter: 2, segments: 24 }, scene);
+      const pm = new BABYLON.StandardMaterial("planetM" + k, scene);
+      pm.diffuseTexture = tex; pm.emissiveTexture = tex; pm.emissiveColor = new BABYLON.Color3(0.35, 0.35, 0.35);
+      pm.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+      pl.material = pm; pl.isVisible = false; pl.isPickable = false; pl.applyFog = false;
+      if (k !== 1) {
+        const ring = BABYLON.MeshBuilder.CreateTorus("pring" + k, { diameter: 3.6, thickness: 0.35, tessellation: 48 }, scene);
+        ring.scaling.y = 0.08; ring.parent = pl; ring.rotation.x = 0.35;
+        const rm = new BABYLON.StandardMaterial("pringM" + k, scene); rm.emissiveColor = new BABYLON.Color3(0.85, 0.75, 0.6); rm.disableLighting = true; rm.alpha = 0.75;
+        ring.material = rm; ring.isPickable = false; ring.applyFog = false;
+        // children of an invisible source don't follow its instances, so give each
+        // instance its own ring clone via the placement hook below
+        pl.metadata = { ring };
+        ring.setEnabled(false);
+      }
+      addProp(2, pl, 1, 1500, (m, z) => {
+        const s = rnd(18, 42);
+        m.position.set(side() * rnd(85, 150), Y_CENTER + rnd(-25, 45), z + 400 + k * 380); m.scaling.setAll(s);
+        if (pl.metadata && pl.metadata.ring) {
+          if (!m.metadata) { const rc = pl.metadata.ring.clone("pringI" + k, null); rc.setEnabled(true); rc.parent = m; m.metadata = { ring: rc }; }
+        }
+      }, (it, dt) => { it.m.rotation.y += dt * 0.05; });
+    });
+  }
+}
+
+let sceneryActive = -1;
+function applySceneryStage(i) {
+  if (sceneryActive === i) return;
+  sceneryActive = i;
+  const z = dragonRoot ? dragonRoot.position.z : 0;
+  sceneryStage.forEach((arr, k) => arr.forEach(it => {
+    const on = k === i;
+    if (on) it.place(it.m, z - 20 + Math.random() * it.span);   // reshuffle around the player
+    it.m.setEnabled(on);
+  }));
+  configureAmbient(i);
+}
+function setSceneryVisible(v) {
+  sceneryStage.forEach((arr, k) => arr.forEach(it => it.m.setEnabled(v && k === sceneryActive)));
+  if (ambientFx) { if (v) ambientFx.start(); else ambientFx.stop(); }
+}
+function updateScenery(dt, tms, dragZ) {
+  const arr = sceneryStage[sceneryActive]; if (!arr) return;
+  for (const it of arr) {
+    if (it.m.position.z < dragZ - 40) it.place(it.m, it.m.position.z + it.span);
+    if (it.anim) it.anim(it, dt, tms);
+  }
+  if (ambientFx) { const e = ambientFx.emitter; e.x = 0; e.y = Y_CENTER; e.z = dragZ + 20; }
+}
+
+// One reusable ambient particle system, re-tinted per stage: rising embers in
+// the magma cave, drifting pollen/sparkles on the plains, stardust in space.
+function buildAmbient() {
+  const ps = new BABYLON.ParticleSystem("ambient", LOW_FX ? 300 : 900, scene);
+  ps.particleTexture = createFlare();
+  ps.emitter = new BABYLON.Vector3(0, Y_CENTER, 20);
+  ps.minEmitBox = new BABYLON.Vector3(-45, -14, 0); ps.maxEmitBox = new BABYLON.Vector3(45, 22, 140);
+  ps.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
+  ps.updateSpeed = 0.016;
+  ambientFx = ps;
+  ps.start();
+}
+function configureAmbient(i) {
+  const ps = ambientFx; if (!ps) return;
+  const R = LOW_FX ? 0.4 : 1;
+  if (i === 0) {        // embers
+    ps.color1 = new BABYLON.Color4(1.0, 0.6, 0.15, 1); ps.color2 = new BABYLON.Color4(1.0, 0.3, 0.05, 1); ps.colorDead = new BABYLON.Color4(0.5, 0.05, 0, 0);
+    ps.minSize = 0.12; ps.maxSize = 0.45; ps.minLifeTime = 1.4; ps.maxLifeTime = 3.2; ps.emitRate = 180 * R;
+    ps.direction1 = new BABYLON.Vector3(-0.4, 1.4, -0.2); ps.direction2 = new BABYLON.Vector3(0.4, 3.2, 0.2);
+    ps.minEmitPower = 1; ps.maxEmitPower = 3; ps.gravity = new BABYLON.Vector3(0, 1.5, 0);
+  } else if (i === 1) { // pollen / sparkles
+    ps.color1 = new BABYLON.Color4(1.0, 1.0, 0.75, 0.9); ps.color2 = new BABYLON.Color4(0.75, 1.0, 0.8, 0.8); ps.colorDead = new BABYLON.Color4(1, 1, 1, 0);
+    ps.minSize = 0.1; ps.maxSize = 0.32; ps.minLifeTime = 2.0; ps.maxLifeTime = 4.0; ps.emitRate = 110 * R;
+    ps.direction1 = new BABYLON.Vector3(-0.8, -0.2, -0.5); ps.direction2 = new BABYLON.Vector3(0.8, 0.6, 0.5);
+    ps.minEmitPower = 0.3; ps.maxEmitPower = 1.2; ps.gravity = new BABYLON.Vector3(0, -0.2, 0);
+  } else {              // stardust
+    ps.color1 = new BABYLON.Color4(0.75, 0.85, 1.0, 1); ps.color2 = new BABYLON.Color4(0.9, 0.7, 1.0, 1); ps.colorDead = new BABYLON.Color4(0.3, 0.3, 1, 0);
+    ps.minSize = 0.08; ps.maxSize = 0.34; ps.minLifeTime = 2.0; ps.maxLifeTime = 4.5; ps.emitRate = 220 * R;
+    ps.direction1 = new BABYLON.Vector3(-0.1, -0.1, -1); ps.direction2 = new BABYLON.Vector3(0.1, 0.1, -1);
+    ps.minEmitPower = 0.5; ps.maxEmitPower = 2; ps.gravity = new BABYLON.Vector3(0, 0, 0);
+  }
 }
 
 function makeBox(i) {
@@ -1202,9 +2377,9 @@ function buildObstacles(useModels) {
     } else {
       node = makeBox(i);
     }
-    node.metadata = { spin: (Math.random()*2-1)*0.04, scored: false };
+    node.metadata = { spin: (Math.random()*2-1)*0.04, scored: false, idle: false, minR: 99 };
     attachHalo(node, 4.0);   // warm danger aura so enemies stand out — kept tight so it frames the model instead of swallowing it
-    placeObstacle(node, 40 + (i / NUM_OBSTACLES) * SPAWN_AHEAD);
+    placeObstacle(node, (dragonRoot ? dragonRoot.position.z : 0) + 40 + (i / NUM_OBSTACLES) * SPAWN_AHEAD);
     obstacles.push(node);
   }
 }
@@ -1212,11 +2387,24 @@ function buildObstacles(useModels) {
 function placeObstacle(m, baseZ) {
   // spawn across the FULL play area (player is clamped to ±LANE_W / Y_CENTER±LANE_H),
   // so hugging an edge or corner is no longer a safe spot — obstacles reach there too.
-  m.position.x = (Math.random()*2-1) * LANE_W;
-  m.position.y = Y_CENTER + (Math.random()*2-1) * LANE_H;
-  m.position.z = baseZ + Math.random()*22;
+  // A few retries keep enemies from landing right on a trail of stars / a ring.
+  for (let k = 0; k < 5; k++) {
+    m.position.x = (Math.random()*2-1) * LANE_W;
+    m.position.y = Y_CENTER + (Math.random()*2-1) * LANE_H;
+    m.position.z = baseZ + Math.random()*22;
+    if (!pathBlocked(m.position.x, m.position.y, m.position.z)) break;
+  }
   m.rotation.set(Math.random()*3, Math.random()*3, Math.random()*3);
-  if (m.metadata) m.metadata.scored = false;
+  if (m.metadata) { m.metadata.scored = false; m.metadata.minR = 99; }
+}
+// Kid-friendly difficulty ramp: start with a sparse sky and fill it in as you
+// go. Very Hard skips the ramp and throws everything at you from the start.
+function activeObstacleCount() {
+  if (veryHard) return NUM_OBSTACLES;
+  return Math.min(NUM_OBSTACLES, 9 + Math.floor(distance / 110));
+}
+function setObstacleIdle(m, idle) {
+  m.metadata.idle = idle; m.setEnabled(!idle);
 }
 
 function activateHeal() {
@@ -1327,8 +2515,21 @@ function setShowcaseHighlight(index) {
   }
 }
 
+// After a run the world has scrolled far down +Z; bring the floor, speed lines
+// and scenery back around the origin so the menu showcase has its backdrop.
+function resetWorldZ() {
+  dragonRoot.position.set(0, Y_CENTER, 0);
+  tunnelFloors.forEach((f, i) => { f.position.z = i * 230; });
+  tunnelCeils.forEach((c, i) => { c.position.z = i * 230; });
+  streaks.forEach(st => resetStreak(st, Math.random() * SPAWN_AHEAD));
+  gates.forEach((g, i) => g.position.z = 150 + i * 130);
+  const k = sceneryActive; sceneryActive = -1; applySceneryStage(k < 0 ? 0 : k);
+}
 function enterMenu() {
   phase = 'menu';
+  resetWorldZ();
+  setTrailsVisible(false);
+  clearCollectibles();
   rebuildShowcase();
   if (showcaseRoot) showcaseRoot.setEnabled(true);
   dragonRoot.setEnabled(false);
@@ -1338,11 +2539,16 @@ function enterMenu() {
   showcaseCam.alpha = -Math.PI/2; showcaseCam.beta = Math.PI/2.25; showcaseCam.radius = 30;
   showcaseCam.setTarget(SHOWCASE_CENTER());
   showcaseCam.attachControl(canvas, true);
+  // lift the carousel into the open space above the bottom menu card
+  if (showcaseCam.targetScreenOffset) showcaseCam.targetScreenOffset.set(0, 5.5);
   renderBest();
   renderCharPicker();
   renderModePicker();
+  renderMenuProgress();
+  renderSoundButtons();
   setShowcaseHighlight(selectedCharIndex);
   $('startScreen').classList.remove('hidden');
+  Sound.music('menu');
 }
 
 function leaveMenu() {
@@ -1438,9 +2644,11 @@ function enterPhotoMode() {
 
   // stash + hide the whole running world so only the posed model + camera remain
   photoSaved = { fogMode: scene.fogMode, clear: scene.clearColor.clone(), skybox: skybox && skybox.isEnabled(), hidden: [] };
-  [].concat(tunnelTiles, obstacles, streaks, gates, heals, unlockItem ? [unlockItem] : []).forEach(m => {
+  [].concat(tunnelTiles, obstacles, streaks, gates, heals, unlockItem ? [unlockItem] : [], specialItem ? [specialItem] : []).forEach(m => {
     if (!m) return; photoSaved.hidden.push([m, m.isEnabled()]); m.setEnabled(false);
   });
+  setSceneryVisible(false); clearCollectibles(); setTrailsVisible(false);
+  Sound.music(null);
   if (skybox) skybox.setEnabled(false);
   scene.fogMode = BABYLON.Scene.FOGMODE_NONE;
   scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);   // transparent → camera video shows through
@@ -1484,6 +2692,7 @@ function exitPhotoMode() {
     scene.clearColor = photoSaved.clear;
     photoSaved = null;
   }
+  setSceneryVisible(true);
   enterMenu();            // rebuilds the showcase view + shows the start screen
 }
 
@@ -1575,11 +2784,24 @@ function resetGame() {
   pointerDown = false; dragVX = dragVY = 0;
   dragonRoot.position.set(0, Y_CENTER, 0);
   dragonBank.rotation.set(0,0,0);
-  obstacles.forEach((m, i) => placeObstacle(m, 40 + (i / NUM_OBSTACLES) * SPAWN_AHEAD));
+  // collectibles / power-ups / mission counters for the new run
+  clearCollectibles();
+  runStars = 0; starChain = 0; lastStarT = 0;
+  nextStarAt = 25; nextRingAt = 220 + Math.random() * 120; nextPowerAt = 380 + Math.random() * 200;
+  runStats = { dist: 0, stars: 0, chain: 0, rings: 0, near: 0, power: 0, smash: 0, heal: 0, rankUp: false };
+  if (progress) progress.missions.forEach(m => { delete m.justDone; });
+  lastHudKey = '';
+  const nAct = activeObstacleCount();
+  obstacles.forEach((m, i) => {
+    setObstacleIdle(m, i >= nAct);
+    placeObstacle(m, 40 + (i / NUM_OBSTACLES) * SPAWN_AHEAD);
+  });
   heals.forEach(h => { h.metadata.active = false; h.setEnabled(false); });
   gates.forEach((g, i) => g.position.z = 150 + i*130);
   // Very Hard always runs on the subspace-like stage; normal restarts at the 1st.
   applyStage(veryHard ? VHARD_STAGE : 0, false); setStageTint(1);
+  camera.position.set(0, Y_CENTER + 3, -12);
+  resetTrails();
   updateHud();
 }
 function startGame() {
@@ -1587,11 +2809,21 @@ function startGame() {
   resetGame();
   $('startScreen').classList.add('hidden'); $('overScreen').classList.add('hidden');
   $('hud').classList.remove('hidden'); $('fx').style.opacity = 1;
-  if (veryHard) { flashToast('💀 VERY HARD — 亜空間', '#c43cff'); flashCombo('3→6倍速 / SUBSPACE'); }
+  $('stageBar').classList.toggle('hidden', veryHard);
   phase = 'playing';
+  Sound.unlock(); Sound.play('click');
+  Sound.music(STAGES[currentStageIndex].music);
+  setTrailsVisible(true);
+  if (veryHard) { flashToast('💀 VERY HARD — 亜空間', '#c43cff'); flashCombo('3→6倍速 / SUBSPACE'); }
+  showStageBanner(currentStageIndex);
+  setTimeout(() => { if (phase === 'playing') showMissionCard(); }, 1300);
 }
 function gameOver() {
   phase = 'over'; $('hud').classList.add('hidden'); $('fx').style.opacity = 0;
+  $('stageBar').classList.add('hidden'); $('missionCard').classList.remove('show');
+  overShownAt = performance.now();
+  Sound.music(null); Sound.play('over');
+  setTrailsVisible(false);
   // clear any active ultimate so its VFX/button don't bleed into the game-over view
   if (specialActive > 0) endInvincibility();
   cineT = 0; $('cinefx').classList.remove('on'); $('specialBtn').classList.remove('show');
@@ -1600,9 +2832,24 @@ function gameOver() {
   $('finalDist').textContent = d.toLocaleString() + ' m';
   const prevBest = getBest();
   const isNew = d > prevBest && d > 0;
-  if (isNew) { saveBest(d); launchConfetti(72); }
+  if (isNew) { saveBest(d); launchConfetti(72); setTimeout(() => Sound.play('best'), 700); }
   $('newRecord').classList.toggle('hidden', !isNew);
   $('bestDist').textContent = '🏆 自己ベスト ' + getBest().toLocaleString() + ' m';
+  $('finalStars').textContent = runStars.toLocaleString();
+  // missions + rank
+  const fin = finishRunProgress();
+  $('overMissionList').innerHTML = fin.rows || '';
+  const ru = $('rankUp');
+  if (fin.rankUp) {
+    const R = RANKS[rankIndex()];
+    $('rankUpName').textContent = R.e + ' ' + R.n;
+    ru.classList.remove('hidden');
+    // rank-up reward: a brand-new companion (while any are still locked)
+    const idx = unlockRandomCharacter();
+    if (idx >= 0 && unlockedThisRun.indexOf(idx) < 0) unlockedThisRun.push(idx);
+    setTimeout(() => Sound.play('unlock'), 900);
+    launchConfetti(60);
+  } else ru.classList.add('hidden');
   // celebrate any characters unlocked this run with a reveal + confetti
   const ur = $('unlockReveal');
   if (unlockedThisRun.length) {
@@ -1630,6 +2877,8 @@ function pauseGame() {
   endPointer();                       // drop any in-progress swipe so the dragon holds still
   $('specialBtn').classList.remove('show');   // hidden while paused; restored on resume
   $('pauseScreen').classList.remove('hidden');
+  setTrailsVisible(false);
+  Sound.suspend();
 }
 function resumeGame() {
   if (phase !== 'paused') return;
@@ -1637,6 +2886,8 @@ function resumeGame() {
   if (hasSpecial && cineT <= 0 && specialActive <= 0) $('specialBtn').classList.add('show');
   last = performance.now();           // avoid a big dt jump on the first resumed frame
   phase = 'playing';
+  setTrailsVisible(true);
+  Sound.resume();
 }
 function quitToMenu() {
   $('pauseScreen').classList.add('hidden');
@@ -1644,10 +2895,20 @@ function quitToMenu() {
   $('fx').style.opacity = 0;
   if (specialActive > 0) endInvincibility();
   hasSpecial = false; cineT = 0; $('cinefx').classList.remove('on'); $('specialBtn').classList.remove('show');
+  $('stageBar').classList.add('hidden'); $('missionCard').classList.remove('show');
+  Sound.resume();
+  // bank what was earned so quitting mid-run never loses stars / cleared missions
+  if (runStats) { progress.stars += runStars; runStats = null;
+    progress.missions.forEach((m, i) => { if (m.done) { const nm = newMission(progress); nm.fresh = true; progress.missions[i] = nm; } });
+    saveProgress(); }
+  clearCollectibles();
+  setTrailsVisible(false);
   enterMenu();
 }
 function updateHud() {
-  $('dist').innerHTML = 'DISTANCE<b>' + Math.floor(distance).toLocaleString() + ' m</b><i id="bestPct"></i>';
+  const dI = Math.floor(distance);
+  $('distVal').textContent = dI.toLocaleString() + ' m';
+  $('starCount').textContent = runStars.toLocaleString();
   // show how far we are vs. the best (only when a best exists)
   const bp = $('bestPct');
   if (bp) {
@@ -1659,9 +2920,35 @@ function updateHud() {
       bp.className = '';
     }
   }
+  const mult = speed / BASE_SPEED;
+  // everything below only changes occasionally — skip the DOM work unless it did
+  const key = lives + '|' + mult.toFixed(1) + '|' + Math.ceil(magnetT) + '|' + Math.ceil(x2T) + '|' + shieldOn + '|' + (specialActive > 0 ? specialActive.toFixed(1) : '') + '|' + Math.floor(dI / 10);
+  if (key === lastHudKey) return;
+  lastHudKey = key;
   $('lives').textContent = '❤️'.repeat(Math.max(0,lives)) + '🖤'.repeat(Math.max(0,3 - lives));
-  const mult = speed / BASE_SPEED; const sp = $('speed');
+  const sp = $('speed');
   sp.textContent = 'SPEED ' + mult.toFixed(1) + 'x'; sp.classList.toggle('boost', mult > 2.2);
+  // power-up chips
+  let pw = '';
+  if (shieldOn) pw += '<span class="pw shd">🛡️</span>';
+  if (magnetT > 0) pw += '<span class="pw mag">🧲 ' + Math.ceil(magnetT) + '</span>';
+  if (x2T > 0) pw += '<span class="pw x2">⭐×2 ' + Math.ceil(x2T) + '</span>';
+  $('powerRow').innerHTML = pw;
+  // stage progress (normal mode): fill toward the next stage's start distance
+  if (!veryHard) {
+    const si = stageForDistance(distance), bar = $('stageBar');
+    const a = STAGE_STARTS[si], b = STAGE_STARTS[si + 1];
+    $('sbFrom').textContent = STAGES[si].emoji;
+    if (b != null) {
+      $('sbTo').textContent = STAGES[si + 1].emoji;
+      $('sbFill').style.width = Math.min(100, (distance - a) / (b - a) * 100) + '%';
+      bar.classList.remove('max');
+    } else {
+      $('sbTo').textContent = '🏆';
+      $('sbFill').style.width = (runStartBest > distance ? Math.min(100, distance / runStartBest * 100) : 100) + '%';
+      bar.classList.add('max');
+    }
+  }
   // invincibility countdown
   const stEl = $('specialTimer');
   if (specialActive > 0) {
@@ -1682,7 +2969,7 @@ function flashCombo(text) {
   el.style.opacity = 1; clearTimeout(el._t); el._t = setTimeout(() => el.style.opacity = 0, 1600);
 }
 function showCombo() {
-  if (dodgeCombo < 5 || dodgeCombo % 5 !== 0) return;
+  if (dodgeCombo < 5 || dodgeCombo % 5 !== 0) return;   // (legacy; near-miss pops replace this)
   const el = $('combo'); el.textContent = '🔥 ' + dodgeCombo + ' COMBO';
   el.style.opacity = 1; clearTimeout(el._t); el._t = setTimeout(() => el.style.opacity = 0, 800);
 }
@@ -1712,7 +2999,21 @@ function celebrateNewBest() {
   const f = $('bestfx'); f.style.opacity = 1; setTimeout(() => f.style.opacity = 0, 600);
 }
 function hit() {
+  // 🛡️ shield soaks up one hit
+  if (shieldOn) {
+    shieldOn = false; if (shieldMesh) shieldMesh.setEnabled(false);
+    invuln = 1.0; shake = 0.5;
+    if (sparkBurst) sparkBurst.manualEmitCount = 200;
+    Sound.play('shieldBreak'); vibrate(30);
+    const f = $('shieldfx'); f.style.opacity = 1; setTimeout(() => f.style.opacity = 0, 250);
+    flashToast('🛡️ ガード！', '#6ad8ff');
+    lastHudKey = '';
+    return;
+  }
   lives--; invuln = INVULN_TIME; shake = 0.9; dodgeCombo = 0;
+  starChain = 0;
+  Sound.play('hit'); vibrate([60, 40, 60]);
+  const lv = $('lives'); lv.classList.remove('shake'); void lv.offsetWidth; lv.classList.add('shake');
   if (sparkBurst) sparkBurst.manualEmitCount = 160;
   if (pipeline) pipeline.chromaticAberration.aberrationAmount = 45;
   $('hitfx').style.opacity = 1; setTimeout(() => $('hitfx').style.opacity = 0, 200);
@@ -1725,7 +3026,10 @@ function pickupHeal(h) {
   if (sparkBurst) sparkBurst.manualEmitCount = 120;
   $('healfx').style.opacity = 1; setTimeout(() => $('healfx').style.opacity = 0, 220);
   if (lives < 3) { lives++; flashToast('💚 +1 LIFE', '#46ff8c'); }
-  else flashToast('💚 MAX', '#46ff8c');
+  else { flashToast('💚 MAX ⭐+5', '#46ff8c'); addStars(5); }
+  if (runStats) runStats.heal++;
+  Sound.play('heal');
+  lastHudKey = '';
   updateHud();
 }
 function pickupUnlockItem() {
@@ -1734,6 +3038,7 @@ function pickupUnlockItem() {
   if (pipeline) pipeline.chromaticAberration.aberrationAmount = 35;
   const f = $('bestfx'); f.style.opacity = 1; setTimeout(() => f.style.opacity = 0, 500);
   const idx = unlockRandomCharacter();
+  Sound.play('unlock');
   if (idx >= 0) {
     unlockedThisRun.push(idx);
     flashToast('✨ 新しい仲間を解放！', '#ffd24a');
@@ -1752,6 +3057,7 @@ function pickupSpecialItem() {
   if (sparkBurst) sparkBurst.manualEmitCount = 240;
   hasSpecial = true;
   $('specialBtn').classList.add('show');
+  Sound.play('power');
   flashToast('⚡ 必殺技チャージ完了！', '#c08bff');
   flashCombo('ボタンで必殺技を発動！');
   updateHud();
@@ -1764,6 +3070,7 @@ function fireSpecial() {
   $('specialBtn').classList.remove('show');
   cineT = SPECIAL_CINE;
   $('cinefx').classList.add('on');
+  Sound.play('special');
   if (pipeline) pipeline.chromaticAberration.aberrationAmount = 12;
   flashToast('⚡ 必殺技 発動！', '#c08bff');
 }
@@ -1780,6 +3087,7 @@ function beginInvincibility() {
   fl.classList.remove('fade'); fl.classList.add('fire');
   // next frame: drop the .fire (instant-on) and add .fade so it eases out
   requestAnimationFrame(() => { fl.classList.remove('fire'); fl.classList.add('fade'); });
+  Sound.play('boom'); vibrate(80);
   flashCombo('🛡️ 無敵! 敵を粉砕せよ');
 }
 function endInvincibility() {
@@ -1795,6 +3103,8 @@ function endInvincibility() {
 function update(dt) {
   const tms = performance.now();
   setStageTint(Math.min(1, dt * 1.5));   // smoothly blend scene/light tint toward the active stage
+  // outside of a run, let any hit / pickup colour-fringing settle back to calm
+  if (phase !== 'playing' && pipeline) pipeline.chromaticAberration.aberrationAmount += (0.3 - pipeline.chromaticAberration.aberrationAmount) * Math.min(1, dt * 3);
   if (phase === 'loading') {
     // calm idle while assets load: slow drift through the tunnel
     dragonRoot.position.set(0, Y_CENTER, 0);
@@ -1854,7 +3164,8 @@ function update(dt) {
   dragonBank.rotation.x += ((PITCH_SIGN * vy * 9) - dragonBank.rotation.x) * Math.min(1, dt*9);
   dragonFacing.position.y = Math.sin(tms*0.012) * 0.14;
   dragonGlow.position.copyFrom(dragonRoot.position);
-  if (fireTrail) fireTrail.emitRate = 240 + boost*360;
+  if (fireTrail) fireTrail.emitRate = 120 + boost*140;
+  updateTrails(dt, speed);
 
   // camera follow + roll + shake + speed fov
   camRoll += ((-vx*1.2) - camRoll) * Math.min(1, dt*5);
@@ -1887,14 +3198,21 @@ function update(dt) {
   else if (dragonFacing) dragonFacing.setEnabled(true);
   if (comboTimer > 0) { comboTimer -= dt; if (comboTimer <= 0) dodgeCombo = 0; }
 
-  // obstacles
-  for (const m of obstacles) {
+  // obstacles — the active count ramps up with distance (see activeObstacleCount)
+  const nAct = activeObstacleCount();
+  for (let oi = 0; oi < obstacles.length; oi++) {
+    const m = obstacles[oi];
+    if (m.metadata.idle) {
+      if (oi < nAct) { setObstacleIdle(m, false); placeObstacle(m, dragZ + SPAWN_AHEAD); }
+      continue;
+    }
     m.rotation.y += m.metadata.spin; m.rotation.x += m.metadata.spin*0.5;
     if (m.position.z < dragZ - RECYCLE_BEHIND) placeObstacle(m, dragZ + SPAWN_AHEAD);
     const dz = m.position.z - dragZ;
     if (Math.abs(dz) < HIT_Z) {
       const dx = m.position.x - dragonRoot.position.x, dy = m.position.y - dragonRoot.position.y;
       const r2 = dx*dx + dy*dy;
+      if (r2 < m.metadata.minR) m.metadata.minR = r2;
       if (specialActive > 0) {
         // invincible: the enemy is smashed to pieces instead of damaging the player
         const SR = HIT_R * 1.7;
@@ -1903,12 +3221,30 @@ function update(dt) {
           if (sparkBurst) sparkBurst.manualEmitCount = 30;
           if (pipeline) pipeline.chromaticAberration.aberrationAmount = 24;
           shake = Math.max(shake, 0.35);
+          if (runStats) runStats.smash++;
+          addStars(3, m.position.clone(), '💥 ⭐+3', 'smash');
+          Sound.play('smash');
           placeObstacle(m, dragZ + SPAWN_AHEAD); continue;
         }
       } else if (invuln <= 0 && r2 < HIT_R*HIT_R) { hit(); placeObstacle(m, dragZ + SPAWN_AHEAD); continue; }
     }
-    if (!m.metadata.scored && dz < -0.5 && dz > -3.0) { m.metadata.scored = true; dodgeCombo++; comboTimer = 2.0; showCombo(); }
+    if (!m.metadata.scored && dz < -0.5 && dz > -3.0) {
+      m.metadata.scored = true;
+      // ギリギリよけ: slipped right past an enemy without touching it
+      const NR = HIT_R + 1.7;
+      if (m.metadata.minR < NR*NR && specialActive <= 0 && invuln <= 0) {
+        dodgeCombo++; comboTimer = 3.0;
+        if (runStats) runStats.near++;
+        addStars(2, null, dodgeCombo > 1 ? '😎 ギリギリ x' + dodgeCombo + '！ ⭐+2' : '😎 ギリギリ！ ⭐+2', 'near');
+        Sound.play('near');
+        if (pipeline) pipeline.chromaticAberration.aberrationAmount = 14;
+      }
+    }
   }
+
+  updateCollectibles(dt, tms, dragZ);
+  if (runStats) runStats.dist = distance;
+  checkMissions();
 
   // heal spawn + pickup
   if (distance >= nextHealAt) { activateHeal(); nextHealAt = distance + 420 + Math.random()*380; }
@@ -2058,6 +3394,9 @@ function spinHeals(dt) { for (const h of heals) if (h.metadata.active) h.rotatio
 function animateAmbient(dt, tms, spd) {
   const dragZ = dragonRoot.position.z, boost = spd / BASE_SPEED;
   for (const t of tunnelTiles) if (t.position.z + 115 < dragZ) t.position.z += 230;
+  updateScenery(dt, tms, dragZ);
+  // molten floor "breathes" so the lava looks alive
+  if (STAGES[0].floor) STAGES[0].floor.emissiveIntensity = 0.42 + Math.sin(tms * 0.0021) * 0.12 + Math.sin(tms * 0.0053) * 0.05;
   for (const s of streaks) {
     s.position.z -= spd * dt * 1.6;
     s.scaling.z = 1.5 + boost*3.5 * (0.6 + 0.4*Math.sin(tms*0.01 + (s.basePhase||0)*6));
@@ -2076,7 +3415,7 @@ function saveBest(v) {
 }
 function renderBest() {
   const el = $('menuBest');
-  if (el) el.textContent = '🏆 自己ベスト ' + getBest().toLocaleString() + ' m';
+  if (el) el.textContent = '🏆 ベスト ' + getBest().toLocaleString() + ' m';
 }
 
 // ---------- character selection (cookie) ----------
@@ -2201,7 +3540,7 @@ addEventListener('keydown', e => {
   if ((k === 'f' || k === 'shift') && phase === 'playing' && hasSpecial) { e.preventDefault(); fireSpecial(); }
   if ((k === ' ' || k === 'enter')) {
     if (phase === 'intro') { introT = INTRO_DUR; }
-    else if (phase === 'menu' || phase === 'over') {
+    else if (phase === 'menu' || (phase === 'over' && performance.now() - overShownAt > 1000)) {
       startGame();
     }
     else if (phase === 'paused') { resumeGame(); }
@@ -2247,7 +3586,8 @@ canvas.addEventListener('contextmenu', e => e.preventDefault());
 // start on a stray tap — the panel is full of controls (character / mode pickers),
 // so a deliberate press of the スタート button is required there to avoid mis-starts.
 const tapStart = e => { e.preventDefault(); startGame(); };
-$('overScreen').addEventListener('pointerup', e => { if (phase === 'over') tapStart(e); });
+// ignore taps for a moment after the crash so frantic steering doesn't skip the results
+$('overScreen').addEventListener('pointerup', e => { if (phase === 'over' && performance.now() - overShownAt > 1600) tapStart(e); });
 $('startBtn').onclick = startGame; $('retryBtn').onclick = startGame;
 // pause controls (stopPropagation so the tap doesn't fall through to the canvas swipe)
 $('pauseBtn').addEventListener('pointerup', e => e.stopPropagation());
@@ -2328,6 +3668,7 @@ function captureCharImage() {
   const savedFog = scene.fogMode;
   try {
     if (skybox) skybox.setEnabled(false);
+    setSceneryVisible(false);
     scene.fogMode = BABYLON.Scene.FOGMODE_NONE;
     scene.clearColor = new BABYLON.Color4(0.06, 0.03, 0.05, 1);   // dark warm backdrop
     scene.render();
@@ -2338,6 +3679,7 @@ function captureCharImage() {
     if (skybox) skybox.setEnabled(savedSky);
     scene.clearColor = savedClear;
     scene.fogMode = savedFog;
+    setSceneryVisible(true);
     scene.render();   // restore the live view
   }
 }
@@ -2469,7 +3811,7 @@ async function buildScoreImage(opts) {
   ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
 
   // character snapshot
-  const fx = 90, fy = 250, fw = W - 180, fh = 470;
+  const fx = 90, fy = 250, fw = W - 180, fh = 420;
   ctx.save();
   roundRectPath(ctx, fx, fy, fw, fh, 34);
   ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fill();
@@ -2511,6 +3853,8 @@ async function buildScoreImage(opts) {
   ctx.fillStyle = '#ffd27a';
   ctx.font = '800 40px system-ui,sans-serif';
   ctx.fillText('🏆 自己ベスト ' + best.toLocaleString() + ' m', W / 2, y);
+  ctx.fillStyle = '#ffe36a';
+  ctx.fillText('⭐ スター ' + runStars.toLocaleString() + 'こ', W / 2, y + 56);
 
   ctx.fillStyle = '#7c8699';
   ctx.font = '600 26px system-ui,sans-serif';
@@ -2560,6 +3904,35 @@ function bindAction(id, fn) {
   el.addEventListener('pointerup', e => e.stopPropagation());
   el.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); fn(); });
 }
+// ---------- sound toggle ----------
+function renderSoundButtons() {
+  ['soundBtn', 'pauseSoundBtn'].forEach(id => {
+    const b = $(id); if (!b) return;
+    b.innerHTML = (Sound.muted ? '🔇' : '🔊') + '<small>' + (Sound.muted ? 'おと OFF' : 'おと ON') + '</small>';
+    b.classList.toggle('off', Sound.muted);
+  });
+}
+function toggleSound() {
+  Sound.toggle(); renderSoundButtons();
+  if (!Sound.muted) { Sound.play('click'); if (phase === 'menu') { Sound.music(null); Sound.music('menu'); } }
+}
+bindAction('soundBtn', toggleSound);
+bindAction('pauseSoundBtn', toggleSound);
+bindAction('homeBtn', () => { if (phase === 'over') { $('overScreen').classList.add('hidden'); enterMenu(); } });
+// WebAudio can only start from a user gesture — unlock it on the very first one
+// (and kick off the menu music if we're already sitting on the menu).
+['pointerdown', 'keydown', 'touchend'].forEach(ev => addEventListener(ev, () => {
+  Sound.unlock();
+  if (phase === 'menu') Sound.music('menu');
+}, { passive: true }));
+// leaving the app (home button / tab switch) pauses the run and the audio
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') { if (phase === 'playing') pauseGame(); Sound.suspend(); }
+  else if (phase !== 'paused') Sound.resume();
+});
+// a soft click on every menu button
+document.addEventListener('click', e => { if (e.target.closest && e.target.closest('.ibtn, .char-chip, .btn')) Sound.play('click'); });
+
 // ---------- help / instructions overlay ----------
 function openHelp() { $('helpScreen').classList.remove('hidden'); }
 function closeHelp() { $('helpScreen').classList.add('hidden'); }
@@ -2584,6 +3957,7 @@ $('shutterBtn').onclick = capturePhoto;
 
 // ---------- boot ----------
 quickPlay = location.hash.indexOf('play') >= 0;
+progress = loadProgress(); saveProgress();
 selectedCharIndex = Math.max(0, CHARACTERS.findIndex(c => c.id === getSelectedCharId()));
 // never boot flying a character that isn't unlocked (e.g. a stale cookie) — the
 // dragon is always available

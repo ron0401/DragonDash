@@ -1,5 +1,5 @@
 /* Dragon Dash — Service Worker (offline-capable PWA) */
-const VERSION = "v10";
+const VERSION = "v11";
 const SHELL_CACHE = `dd-shell-${VERSION}`;
 const RUNTIME_CACHE = `dd-runtime-${VERSION}`;
 
