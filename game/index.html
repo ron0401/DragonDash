@@ -835,19 +835,19 @@ const STAGES = [
   { name:'マグマだまり', sub:'MAGMA CHAMBER', icon:'volcano', toast:'#ff6a2a',
     floor:null, sky:0, env:0.34,
     clear:[0.05,0.018,0.01], fog:[0.16,0.05,0.03], fogStart:95, fogEnd:330,
-    streak:[1.0,0.55,0.25], gate:[1.0,0.45,0.10], glow:[1.0,0.55,0.25],
+    streak:[1.0,0.55,0.25], glow:[1.0,0.55,0.25],
     hemi:[0.40,0.24,0.19], hemiInt:0.5, dir:[1.0,0.58,0.34], dirInt:1.1,
     bloom:[0.85, 0.32], trail:[1.0,0.55,0.15], music:'magma' },
   { name:'岩の草原', sub:'ROCKY PLAINS', icon:'leaf', toast:'#2fbf5f',
     floor:null, sky:1, env:1.15,
     clear:[0.55,0.70,0.85], fog:[0.70,0.82,0.92], fogStart:120, fogEnd:330,
-    streak:[0.85,1.0,0.85], gate:[0.40,1.0,0.50], glow:[0.60,1.0,0.60],
+    streak:[0.85,1.0,0.85], glow:[0.60,1.0,0.60],
     hemi:[0.60,0.66,0.60], hemiInt:1.0, dir:[1.0,0.97,0.85], dirInt:2.2,
     bloom:[1.25, 0.18], trail:[0.35,0.85,1.0], music:'grass' },
   { name:'宇宙空間', sub:'DEEP SPACE', icon:'planet', toast:'#6a55e8',
     floor:null, sky:2, env:0.40,
     clear:[0.0,0.0,0.02], fog:[0.01,0.01,0.04], fogStart:280, fogEnd:900,
-    streak:[0.90,0.95,1.0], gate:[0.60,0.40,1.0], glow:[0.50,0.50,1.0],
+    streak:[0.90,0.95,1.0], glow:[0.50,0.50,1.0],
     hemi:[0.20,0.22,0.40], hemiInt:0.35, dir:[0.60,0.65,1.0], dirInt:0.5,
     bloom:[0.6, 0.42], trail:[0.75,0.45,1.0], music:'space' },
 ];
@@ -858,7 +858,7 @@ let scene, camera, showcaseCam, pipeline, dragonRoot, dragonBank, dragonFacing, 
 let hemiLight, dirLight, fillLight;
 let tunnelFloors = [], tunnelCeils = [], stageSkies = [], skybox, skyMat, streakMat = null;
 let currentStageIndex = -1, stageTgt = STAGES[0];
-let obstacles = [], heals = [], gates = [], streaks = [];
+let obstacles = [], heals = [], streaks = [];
 let unlockItem = null;            // the rare glowing collectible that unlocks a character
 let specialItem = null;           // the rare "必殺技" collectible that charges the ultimate
 let specialAura = null, specialShatter = null, auraRing = null;  // ultimate VFX
@@ -1265,7 +1265,7 @@ function createScene() {
   bootStep = 'setupPipeline';
   setupPipeline();
   bootStep = 'buildSky/Tunnel/Warp/Gates';
-  buildSky(); buildTunnel(); buildWarp(); buildGates();
+  buildSky(); buildTunnel(); buildWarp();
 
   bootStep = 'loadSkies';
   loadSkies();
@@ -1466,14 +1466,6 @@ function resetStreak(s, z) {
   // keep streaks OUT at the tunnel walls so they never overlap the enemy play-zone
   const a = Math.random()*Math.PI*2, r = 24 + Math.random()*40;
   s.position.set(Math.cos(a)*r, Y_CENTER + Math.sin(a)*r*0.6, z); s.basePhase = Math.random();
-}
-
-function buildGates() {
-  for (let i = 0; i < 4; i++) {
-    const t = BABYLON.MeshBuilder.CreateTorus("gate"+i, { diameter: 34, thickness: 0.7, tessellation: 48 }, scene);
-    const m = new BABYLON.StandardMaterial("gm"+i, scene); m.emissiveColor = new BABYLON.Color3(0.2,0.8,1.0); m.disableLighting = true;
-    t.material = m; t.rotation.x = Math.PI/2; t.position.set(0, Y_CENTER, 150 + i*130); gates.push(t); glowInclude(t);
-  }
 }
 
 let haloTex = null;
@@ -2673,7 +2665,6 @@ function resetWorldZ() {
   tunnelFloors.forEach((f, i) => { f.position.z = i * 230; });
   tunnelCeils.forEach((c, i) => { c.position.z = i * 230; });
   streaks.forEach(st => resetStreak(st, Math.random() * SPAWN_AHEAD));
-  gates.forEach((g, i) => g.position.z = 150 + i * 130);
   const k = sceneryActive; sceneryActive = -1; applySceneryStage(k < 0 ? 0 : k);
 }
 function enterMenu() {
@@ -2686,7 +2677,6 @@ function enterMenu() {
   if (pedestal) pedestal.root.setEnabled(true);
   // a clean stage for the hero: no enemies drifting around the pedestal
   obstacles.forEach(o => o.setEnabled(false));
-  gates.forEach(g => g.setEnabled(false));
   dragonRoot.setEnabled(false);
   dragonBank.rotation.set(0,0,0);
   if (fireTrail) fireTrail.emitRate = 0;   // no stray plume at the showcase center
@@ -2800,7 +2790,7 @@ function enterPhotoMode() {
 
   // stash + hide the whole running world so only the posed model + camera remain
   photoSaved = { fogMode: scene.fogMode, clear: scene.clearColor.clone(), skybox: skybox && skybox.isEnabled(), hidden: [] };
-  [].concat(tunnelTiles, obstacles, streaks, gates, heals, unlockItem ? [unlockItem] : [], specialItem ? [specialItem] : []).forEach(m => {
+  [].concat(tunnelTiles, obstacles, streaks, heals, unlockItem ? [unlockItem] : [], specialItem ? [specialItem] : []).forEach(m => {
     if (!m) return; photoSaved.hidden.push([m, m.isEnabled()]); m.setEnabled(false);
   });
   setSceneryVisible(false); clearCollectibles(); setTrailsVisible(false);
@@ -2953,7 +2943,6 @@ function resetGame() {
     placeObstacle(m, 40 + (i / NUM_OBSTACLES) * SPAWN_AHEAD);
   });
   heals.forEach(h => { h.metadata.active = false; h.setEnabled(false); });
-  gates.forEach((g, i) => { g.position.z = 150 + i*130; g.setEnabled(true); });
   // Very Hard always runs on the subspace-like stage; normal restarts at the 1st.
   applyStage(veryHard ? VHARD_STAGE : 0, false); setStageTint(1);
   camera.position.set(0, Y_CENTER + 3, -12);
@@ -3453,12 +3442,6 @@ function update(dt) {
     }
   }
 
-  const gc = stageTgt.gate;
-  for (const g of gates) {
-    if (g.position.z < dragZ - 8) g.position.z += 520;
-    const near = 0.35 + 0.65 * (1 - Math.min(1, Math.abs(g.position.z - dragZ)/34));
-    g.material.emissiveColor.set(gc[0]*near, gc[1]*near, gc[2]*near); g.rotation.z += dt*0.3;
-  }
 
   animateAmbient(dt, tms, speed);
   updateHud();
@@ -3790,7 +3773,7 @@ function captureCharImage() {
   const hide = n => { if (n) { saved.nodes.push([n, n.isEnabled()]); n.setEnabled(false); } };
   try {
     if (!showcaseBuilt) buildShowcase();
-    [].concat(tunnelTiles, obstacles, gates, heals, streaks, [dragonRoot, unlockItem, specialItem],
+    [].concat(tunnelTiles, obstacles, heals, streaks, [dragonRoot, unlockItem, specialItem],
       starPool.map(x => x.m), ringPool.map(x => x.m), Object.keys(powerItems).map(k => powerItems[k])).forEach(hide);
     if (skybox) skybox.setEnabled(false);
     setSceneryVisible(false);
